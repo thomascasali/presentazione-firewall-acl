@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 3 - Firewall Linux</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const colors = { bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b', accent: '#0ea5e9', accentAlt: '#38bdf8', text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b', border: '#334155', success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee', yellow: '#fbbf24' };
+    const Code = ({ children, title }) => (<div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>{title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}<pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', lineHeight: '1.6', color: colors.text, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>{children}</pre></div>);
+    const Box = ({ type = 'info', title, children }) => { const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' } }; const { c, i } = cfg[type]; return (<div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}><div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div><div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div></div>); };
+    const Table = ({ headers, rows }) => (<div style={{ overflowX: 'auto', margin: '16px 0' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}><thead><tr>{headers.map((h, i) => <th key={i} style={{ background: colors.bgLight, color: colors.accent, padding: '10px 12px', textAlign: 'left', borderBottom: `2px solid ${colors.accent}40` }}>{h}</th>)}</tr></thead><tbody>{rows.map((row, ri) => <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}`, color: ci === 0 ? colors.text : colors.textDim, background: ri % 2 ? colors.bgLight + '40' : 'transparent' }}>{cell}</td>)}</tr>)}</tbody></table></div>);
+    const Glow = ({ children, color = colors.accent }) => (<div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}><div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div></div>);
+
+    const slides = [
+      () => (<div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}><div style={{ fontSize: '48px', marginBottom: '20px' }}>🐧</div><div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 3</div><h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Firewall Linux</h1><p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '500px', lineHeight: '1.6' }}>iptables, nftables: architettura, sintassi e configurazione pratica</p></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🏗️ Architettura iptables</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}><Glow><h3 style={{ color: colors.accent, marginBottom: '12px' }}>TABLES → CHAINS → RULES</h3><p style={{ color: colors.textDim, lineHeight: '1.6' }}>iptables organizza le regole in una gerarchia a 3 livelli. Ogni <strong style={{color: colors.text}}>table</strong> contiene <strong style={{color: colors.text}}>chains</strong>, e ogni chain contiene <strong style={{color: colors.text}}>rules</strong>.</p></Glow><Table headers={['Table', 'Scopo', 'Chains']} rows={[['filter', 'Filtraggio pacchetti', 'INPUT, FORWARD, OUTPUT'],['nat', 'NAT / Port forwarding', 'PREROUTING, POSTROUTING, OUTPUT'],['mangle', 'Modifica header', 'Tutte'],['raw', 'Bypass conntrack', 'PREROUTING, OUTPUT'],]} /></div><Box type="info" title="Default">Se non specifichi -t table, iptables usa automaticamente la table filter.</Box></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔀 Flusso dei Pacchetti</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}><div style={{ background: colors.success + '20', border: `1px solid ${colors.success}`, borderRadius: '8px', padding: '14px', textAlign: 'center' }}><div style={{ color: colors.success, fontWeight: 'bold', marginBottom: '4px' }}>INPUT</div><div style={{ color: colors.textDim, fontSize: '12px' }}>Pacchetti destinati a QUESTO host</div></div><div style={{ background: colors.warn + '20', border: `1px solid ${colors.warn}`, borderRadius: '8px', padding: '14px', textAlign: 'center' }}><div style={{ color: colors.warn, fontWeight: 'bold', marginBottom: '4px' }}>FORWARD</div><div style={{ color: colors.textDim, fontSize: '12px' }}>Pacchetti che ATTRAVERSANO (routing)</div></div><div style={{ background: colors.purple + '20', border: `1px solid ${colors.purple}`, borderRadius: '8px', padding: '14px', textAlign: 'center' }}><div style={{ color: colors.purple, fontWeight: 'bold', marginBottom: '4px' }}>OUTPUT</div><div style={{ color: colors.textDim, fontSize: '12px' }}>Pacchetti generati DA questo host</div></div></div><Code title="Percorso tipico">{`NETWORK IN → PREROUTING → [Routing Decision]
+                              ↓ local?     ↓ forward?
+                            INPUT        FORWARD
+                              ↓              ↓
+                           LOCAL APP    POSTROUTING → NETWORK OUT
+                              ↓
+                           OUTPUT → POSTROUTING → NETWORK OUT`}</Code></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>⌨️ Sintassi iptables</h2><Code title="Struttura comando">{`iptables [-t table] COMMAND CHAIN [match] -j TARGET
+
+# Comandi: -A (append), -I (insert), -D (delete)
+#          -L (list), -F (flush), -P (policy)`}</Code><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}><Code title="Match Criteria">{`-p tcp|udp|icmp      # Protocollo
+-s 192.168.1.0/24    # IP sorgente
+-d 10.0.0.1          # IP destinazione
+--dport 80           # Porta destinazione
+--sport 1024:65535   # Range porte
+-i eth0              # Interfaccia IN
+-o eth1              # Interfaccia OUT
+-m state --state     # Stato connessione`}</Code><Code title="Targets">{`-j ACCEPT      # Accetta
+-j DROP        # Scarta silenzioso
+-j REJECT      # Scarta + ICMP error
+-j LOG         # Logga e continua
+-j MASQUERADE  # SNAT dinamico
+-j SNAT        # Source NAT
+-j DNAT        # Destination NAT`}</Code></div></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📝 Configurazione Server Web</h2><Code title="Script completo">{`#!/bin/bash
+# Reset e policy default DENY
+iptables -F && iptables -X
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+# Loopback (localhost)
+iptables -A INPUT -i lo -j ACCEPT
+
+# Connessioni stabilite (FONDAMENTALE!)
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# SSH (porta 22)
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# HTTP e HTTPS
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+
+# ICMP (ping)
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT`}</Code><Box type="success" title="Regola d'oro">La regola ESTABLISHED,RELATED permette automaticamente il traffico di ritorno!</Box></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔄 NAT e Masquerading</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}><Code title="SNAT / Masquerading">{`# Abilita IP forwarding
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# Masquerading (IP dinamico)
+iptables -t nat -A POSTROUTING \\
+  -s 192.168.1.0/24 \\
+  -o eth0 \\
+  -j MASQUERADE
+
+# SNAT (IP statico) - più efficiente
+iptables -t nat -A POSTROUTING \\
+  -s 192.168.1.0/24 \\
+  -o eth0 \\
+  -j SNAT --to-source 203.0.113.1`}</Code><Code title="DNAT / Port Forwarding">{`# Redirige porta 80 pubblica
+# verso server interno 192.168.1.100:8080
+
+iptables -t nat -A PREROUTING \\
+  -i eth0 \\
+  -p tcp --dport 80 \\
+  -j DNAT --to-destination 192.168.1.100:8080
+
+# Permetti il traffico forward
+iptables -A FORWARD \\
+  -p tcp -d 192.168.1.100 \\
+  --dport 8080 -j ACCEPT`}</Code></div><Box type="warn" title="MASQUERADE vs SNAT">MASQUERADE per IP dinamico (DHCP), SNAT per IP statico (più efficiente).</Box></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>💾 Persistenza Regole</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}><Code title="Debian/Ubuntu">{`# Salva regole correnti
+iptables-save > /etc/iptables/rules.v4
+
+# Ripristina
+iptables-restore < /etc/iptables/rules.v4
+
+# Persistenza automatica
+apt install iptables-persistent
+# Caricate da /etc/iptables/ al boot`}</Code><Code title="CentOS/RHEL">{`# Con iptables-services
+systemctl enable iptables
+service iptables save
+# Salva in /etc/sysconfig/iptables
+
+# Con firewalld (default RHEL 7+)
+firewall-cmd --permanent --add-port=80/tcp
+firewall-cmd --reload`}</Code></div><Box type="danger" title="Attenzione">Le regole iptables NON sono persistenti per default! Al riavvio vengono perse.</Box></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.cyan, marginBottom: '24px' }}>🆕 nftables - Il Successore</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}><Glow color={colors.cyan}><h3 style={{ color: colors.cyan, marginBottom: '12px' }}>Perché nftables?</h3><ul style={{ color: colors.textDim, lineHeight: '1.8', paddingLeft: '18px' }}><li><strong style={{ color: colors.text }}>Sintassi più pulita</strong></li><li><strong style={{ color: colors.text }}>Framework unico</strong> (iptables + ip6tables + arptables)</li><li><strong style={{ color: colors.text }}>Performance migliori</strong></li><li><strong style={{ color: colors.text }}>Atomic updates</strong></li><li>Default su <strong style={{ color: colors.success }}>Debian 10+, RHEL 8+</strong></li></ul></Glow><Table headers={['iptables', 'nftables']} rows={[['Tables predefinite', 'Create manualmente'],['iptables + ip6tables', 'nft (comando unico)'],['-A, -I, -D', 'add, insert, delete'],['Regole una per volta', 'Regole atomiche'],]} /></div></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.cyan, marginBottom: '24px' }}>⌨️ nftables - Esempio</h2><Code title="Configurazione completa /etc/nftables.conf">{`#!/usr/sbin/nft -f
+flush ruleset
+
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # Loopback
+        iif lo accept
+
+        # Connessioni stabilite
+        ct state established,related accept
+
+        # ICMP
+        ip protocol icmp accept
+        ip6 nexthdr icmpv6 accept
+
+        # SSH, HTTP, HTTPS - nota la sintassi con { }
+        tcp dport { 22, 80, 443 } accept
+
+        # Log e drop
+        log prefix "nft_DROP: " drop
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}`}</Code><Box type="tip" title="Migrazione">Usa iptables-translate per convertire regole iptables → nftables</Box></div>),
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔄 Confronto Sintassi</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}><Code title="iptables">{`# Policy DROP
+iptables -P INPUT DROP
+
+# Loopback
+iptables -A INPUT -i lo -j ACCEPT
+
+# Established
+iptables -A INPUT -m state \\
+  --state ESTABLISHED,RELATED -j ACCEPT
+
+# SSH
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# HTTP + HTTPS (2 regole separate)
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT`}</Code><Code title="nftables">{`table inet filter {
+  chain input {
+    type filter hook input priority 0;
+    policy drop;
+
+    iif lo accept
+
+    ct state established,related accept
+
+    tcp dport 22 accept
+
+    # Più porte insieme!
+    tcp dport { 80, 443 } accept
+  }
+}`}</Code></div></div>),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+      useEffect(() => { const handler = e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); } if (e.key === 'Escape') window.location.href = 'index.html'; }; window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, []);
+      return (<div style={{ minHeight: '100vh', background: colors.bg }}><div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a><span style={{ color: colors.border }}>|</span><span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 3</span><span style={{ color: colors.textDim }}>Firewall Linux</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span><div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}><div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: colors.accent, borderRadius: '2px', transition: 'width 0.3s' }} /></div></div></div><div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>{slides[current]()}</div><div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>{current === 0 && <a href="modulo2-firewall-types.html" style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, textDecoration: 'none', fontSize: '14px' }}>← Modulo 2</a>}{current > 0 && <button onClick={prev} style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer', fontSize: '14px' }}>← Indietro</button>}<button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>{current === total - 1 && <a href="modulo4-windows-firewall.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.purple}, #9333ea)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 4 →</a>}</div></div>);
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 4 - Windows Firewall</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const colors = { bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b', accent: '#a78bfa', accentAlt: '#c4b5fd', text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b', border: '#334155', success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee' };
+
+    const Code = ({ children, title }) => (<div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>{title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}<pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', lineHeight: '1.6', color: colors.text, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>{children}</pre></div>);
+
+    const Box = ({ type = 'info', title, children }) => { const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' } }; const { c, i } = cfg[type]; return (<div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}><div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div><div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div></div>); };
+
+    const Table = ({ headers, rows }) => (<div style={{ overflowX: 'auto', margin: '16px 0' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}><thead><tr>{headers.map((h, i) => <th key={i} style={{ background: colors.bgLight, color: colors.accent, padding: '10px 12px', textAlign: 'left', borderBottom: `2px solid ${colors.accent}40` }}>{h}</th>)}</tr></thead><tbody>{rows.map((row, ri) => <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}`, color: ci === 0 ? colors.text : colors.textDim, background: ri % 2 ? colors.bgLight + '40' : 'transparent' }}>{cell}</td>)}</tr>)}</tbody></table></div>);
+
+    const Glow = ({ children, color = colors.accent }) => (<div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}><div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div></div>);
+
+    const slides = [
+      // Slide 1: Title
+      () => (<div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}><div style={{ fontSize: '48px', marginBottom: '20px' }}>🪟</div><div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 4</div><h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Windows Firewall</h1><p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '500px', lineHeight: '1.6' }}>Windows Defender Firewall: profili, GUI, PowerShell e netsh</p></div>),
+
+      // Slide 2: Introduzione
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🛡️ Windows Defender Firewall</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}><Glow><h3 style={{ color: colors.accent, marginBottom: '12px' }}>Caratteristiche</h3><ul style={{ color: colors.textDim, lineHeight: '1.8', paddingLeft: '18px' }}><li><strong style={{ color: colors.text }}>Host-based firewall</strong> integrato in Windows</li><li><strong style={{ color: colors.text }}>Stateful inspection</strong></li><li>Supporto regole per <strong style={{ color: colors.text }}>applicazioni</strong></li><li>Integrazione con <strong style={{ color: colors.text }}>Windows Security Center</strong></li><li>Gestibile via GUI, PowerShell, GPO</li></ul></Glow><div><h3 style={{ color: colors.text, marginBottom: '12px' }}>📂 Strumenti di gestione</h3><div style={{ display: 'grid', gap: '10px' }}>{[['🖥️', 'Windows Security', 'Interfaccia semplificata'],['⚙️', 'wf.msc', 'Windows Firewall with Advanced Security'],['💻', 'PowerShell', 'NetSecurity module'],['📟', 'netsh', 'Legacy command line'],].map(([icon, name, desc]) => (<div key={name} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: colors.bgLight, borderRadius: '8px' }}><span style={{ fontSize: '20px' }}>{icon}</span><div><div style={{ color: colors.text, fontWeight: '500' }}>{name}</div><div style={{ color: colors.textMuted, fontSize: '12px' }}>{desc}</div></div></div>))}</div></div></div></div>),
+
+      // Slide 3: Profili di rete
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🌐 Profili di Rete</h2><p style={{ color: colors.textDim, marginBottom: '20px' }}>Windows applica regole firewall diverse in base al tipo di rete rilevata:</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}><div style={{ background: colors.bgCard, border: `2px solid ${colors.info}`, borderRadius: '12px', padding: '20px', textAlign: 'center' }}><div style={{ fontSize: '36px', marginBottom: '10px' }}>🏢</div><div style={{ color: colors.info, fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>Domain</div><div style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.5' }}>PC connesso a un dominio Active Directory. Regole gestite centralmente via GPO. Più permissivo.</div><div style={{ marginTop: '12px', padding: '6px 12px', background: colors.info + '20', borderRadius: '6px', color: colors.info, fontSize: '11px' }}>Rilevato automaticamente</div></div><div style={{ background: colors.bgCard, border: `2px solid ${colors.success}`, borderRadius: '12px', padding: '20px', textAlign: 'center' }}><div style={{ fontSize: '36px', marginBottom: '10px' }}>🏠</div><div style={{ color: colors.success, fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>Private</div><div style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.5' }}>Reti domestiche o aziendali fidate. Network discovery attivo. File sharing permesso.</div><div style={{ marginTop: '12px', padding: '6px 12px', background: colors.success + '20', borderRadius: '6px', color: colors.success, fontSize: '11px' }}>Selezionato dall'utente</div></div><div style={{ background: colors.bgCard, border: `2px solid ${colors.danger}`, borderRadius: '12px', padding: '20px', textAlign: 'center' }}><div style={{ fontSize: '36px', marginBottom: '10px' }}>☕</div><div style={{ color: colors.danger, fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>Public</div><div style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.5' }}>Reti pubbliche (WiFi bar, hotel). Massima protezione. Discovery disattivato.</div><div style={{ marginTop: '12px', padding: '6px 12px', background: colors.danger + '20', borderRadius: '6px', color: colors.danger, fontSize: '11px' }}>DEFAULT per nuove reti</div></div></div><Box type="warn" title="Best Practice">Tratta sempre le reti sconosciute come Public. Non fidarti mai del WiFi gratuito!</Box></div>),
+
+      // Slide 4: GUI wf.msc
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>⚙️ Windows Firewall Advanced Security</h2><p style={{ color: colors.textDim, marginBottom: '16px' }}>Apri con: <code style={{ background: colors.bgLight, padding: '4px 8px', borderRadius: '4px' }}>Win+R → wf.msc</code></p><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}><div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}><h3 style={{ color: colors.accent, marginBottom: '14px' }}>📥 Inbound Rules</h3><p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '12px' }}>Controllano il traffico IN ENTRATA verso questo PC.</p><ul style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.7', paddingLeft: '16px' }}><li>Default: <strong style={{ color: colors.danger }}>Block</strong></li><li>Eccezioni per servizi Windows</li><li>Regole per applicazioni specifiche</li></ul></div><div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}><h3 style={{ color: colors.purple, marginBottom: '14px' }}>📤 Outbound Rules</h3><p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '12px' }}>Controllano il traffico IN USCITA da questo PC.</p><ul style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.7', paddingLeft: '16px' }}><li>Default: <strong style={{ color: colors.success }}>Allow</strong></li><li>Utile per bloccare app specifiche</li><li>Controllo esfiltrazione dati</li></ul></div></div><Table headers={['Proprietà Regola', 'Descrizione', 'Esempio']} rows={[['Program', 'Percorso eseguibile', 'C:\\Program Files\\App\\app.exe'],['Protocol/Port', 'TCP/UDP e porta', 'TCP 443'],['Scope', 'IP locali/remoti', '192.168.1.0/24'],['Action', 'Allow/Block/Secure', 'Allow'],['Profile', 'Domain/Private/Public', 'Private, Public'],]} /></div>),
+
+      // Slide 5: PowerShell
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>💻 Gestione con PowerShell</h2><Code title="Comandi NetSecurity (PowerShell 5+)">{`# Visualizza stato firewall per tutti i profili
+Get-NetFirewallProfile | Select Name, Enabled
+
+# Abilita/Disabilita firewall
+Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True
+
+# Lista regole attive in ingresso
+Get-NetFirewallRule -Direction Inbound -Enabled True |
+    Select DisplayName, Action, Profile
+
+# Crea regola: permetti HTTP in ingresso
+New-NetFirewallRule -DisplayName "Allow HTTP" \`
+    -Direction Inbound \`
+    -Protocol TCP \`
+    -LocalPort 80 \`
+    -Action Allow \`
+    -Profile Private,Domain
+
+# Crea regola: permetti applicazione
+New-NetFirewallRule -DisplayName "Allow MyApp" \`
+    -Direction Inbound \`
+    -Program "C:\\Apps\\myapp.exe" \`
+    -Action Allow
+
+# Blocca range IP
+New-NetFirewallRule -DisplayName "Block BadNetwork" \`
+    -Direction Inbound \`
+    -RemoteAddress 10.10.10.0/24 \`
+    -Action Block
+
+# Rimuovi regola
+Remove-NetFirewallRule -DisplayName "Allow HTTP"`}</Code></div>),
+
+      // Slide 6: netsh e Confronto
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📟 netsh (Legacy) e Confronto</h2><Code title="Comandi netsh advfirewall">{`# Stato firewall
+netsh advfirewall show allprofiles
+
+# Abilita firewall
+netsh advfirewall set allprofiles state on
+
+# Aggiungi regola porta
+netsh advfirewall firewall add rule name="Allow HTTP" ^
+    dir=in action=allow protocol=tcp localport=80
+
+# Aggiungi regola programma
+netsh advfirewall firewall add rule name="Allow App" ^
+    dir=in action=allow program="C:\app.exe"
+
+# Rimuovi regola
+netsh advfirewall firewall delete rule name="Allow HTTP"
+
+# Reset firewall (attenzione!)
+netsh advfirewall reset`}</Code><Table headers={['Aspetto', 'Windows Firewall', 'iptables/nftables']} rows={[['Tipo', 'Host-based, GUI', 'Host o Perimetrale, CLI'],['Filtraggio App', '✓ Per eseguibile', '✗ Solo IP/Porta'],['Profili', 'Domain/Private/Public', 'No (chains)'],['Stateful', '✓ Automatico', '✓ Con -m state'],['Gestione', 'GUI + PS + GPO', 'Solo CLI/script'],]} /></div>),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+      useEffect(() => { const handler = e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); } if (e.key === 'Escape') window.location.href = 'index.html'; }; window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, []);
+      return (<div style={{ minHeight: '100vh', background: colors.bg }}><div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a><span style={{ color: colors.border }}>|</span><span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 4</span><span style={{ color: colors.textDim }}>Windows Firewall</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span><div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}><div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: colors.accent, borderRadius: '2px', transition: 'width 0.3s' }} /></div></div></div><div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>{slides[current]()}</div><div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>{current === 0 && <a href="modulo3-linux-firewall.html" style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, textDecoration: 'none', fontSize: '14px' }}>← Modulo 3</a>}{current > 0 && <button onClick={prev} style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer', fontSize: '14px' }}>← Indietro</button>}<button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>{current === total - 1 && <a href="modulo5-acl.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.danger}, #dc2626)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 5 →</a>}</div></div>);
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

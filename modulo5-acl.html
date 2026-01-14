@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 5 - Access Control List</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const colors = { bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b', accent: '#f87171', accentAlt: '#fca5a5', text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b', border: '#334155', success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee' };
+
+    const Code = ({ children, title }) => (<div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>{title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}<pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', lineHeight: '1.6', color: colors.text, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>{children}</pre></div>);
+    const Box = ({ type = 'info', title, children }) => { const cfg = { info: { c: colors.info }, warn: { c: colors.warn }, danger: { c: colors.danger }, tip: { c: colors.purple }, success: { c: colors.success } }; const { c } = cfg[type]; return (<div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}><div style={{ fontWeight: '600', color: c, marginBottom: '6px' }}>{title}</div><div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div></div>); };
+    const Table = ({ headers, rows }) => (<div style={{ overflowX: 'auto', margin: '16px 0' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}><thead><tr>{headers.map((h, i) => <th key={i} style={{ background: colors.bgLight, color: colors.accent, padding: '10px 12px', textAlign: 'left', borderBottom: `2px solid ${colors.accent}40` }}>{h}</th>)}</tr></thead><tbody>{rows.map((row, ri) => <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}`, color: ci === 0 ? colors.text : colors.textDim, background: ri % 2 ? colors.bgLight + '40' : 'transparent' }}>{cell}</td>)}</tr>)}</tbody></table></div>);
+    const Glow = ({ children, color = colors.accent }) => (<div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}><div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div></div>);
+
+    // Wildcard Visualizer Component
+    const WildcardVisualizer = () => {
+      const [network, setNetwork] = useState('192.168.1.0');
+      const [wildcard, setWildcard] = useState('0.0.0.255');
+
+      const toBinary = (octet) => parseInt(octet).toString(2).padStart(8, '0');
+      const networkOctets = network.split('.');
+      const wildcardOctets = wildcard.split('.');
+
+      const matchBits = wildcardOctets.reduce((acc, o) => acc + (8 - parseInt(o).toString(2).split('1').length + 1), 0);
+      const ignoreBits = 32 - matchBits;
+      const hosts = Math.pow(2, ignoreBits);
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.cyan, marginBottom: '16px' }}>🔢 Wildcard Mask Visualizer</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '12px', marginBottom: '6px' }}>Network Address</label>
+              <input value={network} onChange={e => setNetwork(e.target.value)} style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '12px', marginBottom: '6px' }}>Wildcard Mask</label>
+              <input value={wildcard} onChange={e => setWildcard(e.target.value)} style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace' }} />
+            </div>
+          </div>
+          <div style={{ background: colors.bg, borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
+              {[0,1,2,3].map(i => (
+                <div key={i}>
+                  <div style={{ color: colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>Octet {i+1}</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '11px', marginBottom: '4px' }}>
+                    {toBinary(networkOctets[i] || 0).split('').map((b, j) => (
+                      <span key={j} style={{ color: toBinary(wildcardOctets[i] || 0)[j] === '0' ? colors.success : colors.danger }}>{b}</span>
+                    ))}
+                  </div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '11px', color: colors.textMuted }}>
+                    {toBinary(wildcardOctets[i] || 0).split('').map((b, j) => (
+                      <span key={j} style={{ color: b === '0' ? colors.success : colors.danger }}>{b}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
+            <div style={{ background: colors.success + '20', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ color: colors.success, fontWeight: 'bold', fontSize: '20px' }}>{matchBits}</div>
+              <div style={{ color: colors.textMuted, fontSize: '11px' }}>Match bits (0)</div>
+            </div>
+            <div style={{ background: colors.danger + '20', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ color: colors.danger, fontWeight: 'bold', fontSize: '20px' }}>{ignoreBits}</div>
+              <div style={{ color: colors.textMuted, fontSize: '11px' }}>Ignore bits (1)</div>
+            </div>
+            <div style={{ background: colors.info + '20', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ color: colors.info, fontWeight: 'bold', fontSize: '20px' }}>{hosts.toLocaleString()}</div>
+              <div style={{ color: colors.textMuted, fontSize: '11px' }}>Host matchati</div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ACL Simulator Component
+    const ACLSimulator = () => {
+      const [packet, setPacket] = useState({ srcIp: '192.168.1.100', dstIp: '10.0.0.50', protocol: 'tcp', dstPort: '80' });
+      const [result, setResult] = useState(null);
+      const [checking, setChecking] = useState(false);
+      const [currentRule, setCurrentRule] = useState(-1);
+
+      const rules = [
+        { id: 1, action: 'permit', protocol: 'tcp', src: '192.168.1.0', srcWild: '0.0.0.255', dst: 'any', dstPort: '80' },
+        { id: 2, action: 'permit', protocol: 'tcp', src: '192.168.1.0', srcWild: '0.0.0.255', dst: 'any', dstPort: '443' },
+        { id: 3, action: 'deny', protocol: 'ip', src: 'any', dst: 'any' },
+      ];
+
+      const matchIP = (ip, net, wild) => {
+        if (net === 'any') return true;
+        const ipParts = ip.split('.').map(Number);
+        const netParts = net.split('.').map(Number);
+        const wildParts = wild.split('.').map(Number);
+        return ipParts.every((p, i) => (p & ~wildParts[i]) === (netParts[i] & ~wildParts[i]));
+      };
+
+      const checkPacket = async () => {
+        setChecking(true);
+        setResult(null);
+        setCurrentRule(-1);
+
+        for (let i = 0; i < rules.length; i++) {
+          setCurrentRule(i);
+          await new Promise(r => setTimeout(r, 800));
+          const rule = rules[i];
+          const protoMatch = rule.protocol === 'ip' || rule.protocol === packet.protocol;
+          const srcMatch = matchIP(packet.srcIp, rule.src, rule.srcWild || '0.0.0.0');
+          const dstMatch = rule.dst === 'any' || matchIP(packet.dstIp, rule.dst, '0.0.0.0');
+          const portMatch = !rule.dstPort || rule.dstPort === packet.dstPort;
+
+          if (protoMatch && srcMatch && dstMatch && portMatch) {
+            setResult({ matched: i, action: rule.action });
+            setChecking(false);
+            return;
+          }
+        }
+        setResult({ matched: -1, action: 'deny (implicit)' });
+        setChecking(false);
+      };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.warn, marginBottom: '16px' }}>🧪 ACL Simulator</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '4px' }}>Source IP</label>
+              <input value={packet.srcIp} onChange={e => setPacket({...packet, srcIp: e.target.value})} style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace', fontSize: '12px' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '4px' }}>Dest IP</label>
+              <input value={packet.dstIp} onChange={e => setPacket({...packet, dstIp: e.target.value})} style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace', fontSize: '12px' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '4px' }}>Protocol</label>
+              <select value={packet.protocol} onChange={e => setPacket({...packet, protocol: e.target.value})} style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '12px' }}>
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="icmp">ICMP</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '4px' }}>Dest Port</label>
+              <input value={packet.dstPort} onChange={e => setPacket({...packet, dstPort: e.target.value})} style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace', fontSize: '12px' }} />
+            </div>
+          </div>
+          <div style={{ background: colors.bg, borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', color: colors.textMuted, marginBottom: '8px' }}>ACCESS-LIST 100:</div>
+            {rules.map((r, i) => (
+              <div key={r.id} style={{ padding: '8px 12px', marginBottom: '4px', background: currentRule === i ? (result?.matched === i ? (r.action === 'permit' ? colors.success : colors.danger) + '40' : colors.warn + '30') : colors.bgLight, borderRadius: '6px', fontFamily: 'monospace', fontSize: '11px', border: currentRule === i ? `2px solid ${colors.warn}` : '2px solid transparent', transition: 'all 0.3s' }}>
+                <span style={{ color: r.action === 'permit' ? colors.success : colors.danger }}>{r.action}</span>
+                {' '}<span style={{ color: colors.info }}>{r.protocol}</span>
+                {' '}<span style={{ color: colors.text }}>{r.src}</span>
+                {r.srcWild && <span style={{ color: colors.textMuted }}> {r.srcWild}</span>}
+                {' '}<span style={{ color: colors.text }}>{r.dst}</span>
+                {r.dstPort && <span style={{ color: colors.purple }}> eq {r.dstPort}</span>}
+              </div>
+            ))}
+            <div style={{ padding: '8px 12px', background: colors.bgLight, borderRadius: '6px', fontFamily: 'monospace', fontSize: '11px', color: colors.textMuted, fontStyle: 'italic' }}>
+              (implicit deny ip any any)
+            </div>
+          </div>
+          <button onClick={checkPacket} disabled={checking} style={{ width: '100%', padding: '12px', background: checking ? colors.bgLight : `linear-gradient(135deg, ${colors.warn}, ${colors.danger})`, border: 'none', borderRadius: '8px', color: checking ? colors.textMuted : '#fff', fontWeight: '600', cursor: checking ? 'not-allowed' : 'pointer' }}>
+            {checking ? '🔍 Checking...' : '▶️ Test Packet'}
+          </button>
+          {result && (
+            <div style={{ marginTop: '16px', padding: '14px', background: result.action.includes('permit') ? colors.success + '20' : colors.danger + '20', border: `1px solid ${result.action.includes('permit') ? colors.success : colors.danger}`, borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', marginBottom: '6px' }}>{result.action.includes('permit') ? '✅' : '❌'}</div>
+              <div style={{ color: result.action.includes('permit') ? colors.success : colors.danger, fontWeight: 'bold' }}>{result.action.toUpperCase()}</div>
+              <div style={{ color: colors.textMuted, fontSize: '12px' }}>{result.matched >= 0 ? `Matched rule #${result.matched + 1}` : 'No explicit match'}</div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const slides = [
+      // Slide 1: Title
+      () => (<div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}><div style={{ fontSize: '48px', marginBottom: '20px' }}>📋</div><div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 5</div><h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Access Control List</h1><p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '500px', lineHeight: '1.6' }}>ACL Cisco: Standard, Extended, Wildcard Mask e simulatore interattivo</p></div>),
+
+      // Slide 2: Intro ACL
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📋 Cosa sono le ACL?</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}><Glow><p style={{ color: colors.textDim, lineHeight: '1.7' }}>Le <strong style={{ color: colors.accent }}>Access Control List</strong> sono liste ordinate di regole che definiscono quali pacchetti sono permessi o negati su un'interfaccia di un router/switch.</p><ul style={{ color: colors.textDim, lineHeight: '1.8', paddingLeft: '18px', marginTop: '12px' }}><li>Valutate <strong style={{ color: colors.text }}>dall'alto verso il basso</strong></li><li><strong style={{ color: colors.text }}>First match wins</strong></li><li><strong style={{ color: colors.danger }}>Implicit deny</strong> alla fine</li><li>Applicate su interfacce (in/out)</li></ul></Glow><div><h3 style={{ color: colors.text, marginBottom: '12px' }}>🎯 Usi comuni</h3><div style={{ display: 'grid', gap: '8px' }}>{[['🚫', 'Filtraggio traffico', 'Blocca/permetti per IP/porta'],['🛣️', 'Route filtering', 'Controlla redistribuzione rotte'],['🔐', 'VPN/NAT', 'Definisce traffico interessante'],['📊', 'QoS', 'Classifica traffico per priorità'],].map(([icon, title, desc]) => (<div key={title} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: colors.bgLight, borderRadius: '8px' }}><span style={{ fontSize: '20px' }}>{icon}</span><div><div style={{ color: colors.text, fontWeight: '500', fontSize: '13px' }}>{title}</div><div style={{ color: colors.textMuted, fontSize: '11px' }}>{desc}</div></div></div>))}</div></div></div></div>),
+
+      // Slide 3: Standard vs Extended
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📊 Standard vs Extended ACL</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}><div style={{ background: colors.bgCard, border: `2px solid ${colors.info}`, borderRadius: '12px', padding: '20px' }}><h3 style={{ color: colors.info, marginBottom: '12px' }}>Standard ACL (1-99)</h3><p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '12px' }}>Filtrano SOLO in base all'<strong style={{ color: colors.text }}>IP sorgente</strong>.</p><Code>{`access-list 10 permit 192.168.1.0 0.0.0.255
+access-list 10 deny any`}</Code><ul style={{ color: colors.textDim, fontSize: '12px', lineHeight: '1.6', paddingLeft: '16px' }}><li>Numeri: 1-99, 1300-1999</li><li>Posizionare vicino alla <strong style={{ color: colors.warn }}>destinazione</strong></li><li>Semplici ma limitate</li></ul></div><div style={{ background: colors.bgCard, border: `2px solid ${colors.purple}`, borderRadius: '12px', padding: '20px' }}><h3 style={{ color: colors.purple, marginBottom: '12px' }}>Extended ACL (100-199)</h3><p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '12px' }}>Filtrano per <strong style={{ color: colors.text }}>IP src/dst, protocollo, porta</strong>.</p><Code>{`access-list 100 permit tcp 192.168.1.0 0.0.0.255
+  any eq 80
+access-list 100 deny ip any any`}</Code><ul style={{ color: colors.textDim, fontSize: '12px', lineHeight: '1.6', paddingLeft: '16px' }}><li>Numeri: 100-199, 2000-2699</li><li>Posizionare vicino alla <strong style={{ color: colors.success }}>sorgente</strong></li><li>Più granulari e flessibili</li></ul></div></div></div>),
+
+      // Slide 4: Wildcard Mask
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🎭 Wildcard Mask</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}><Glow color={colors.cyan}><h3 style={{ color: colors.cyan, marginBottom: '12px' }}>Come funziona?</h3><p style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '12px' }}>La wildcard mask è l'<strong style={{ color: colors.text }}>inverso</strong> della subnet mask. Indica quali bit dell'IP <strong style={{ color: colors.success }}>devono corrispondere</strong> (0) e quali <strong style={{ color: colors.danger }}>vengono ignorati</strong> (1).</p><div style={{ display: 'grid', gap: '8px' }}><div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: colors.success + '20', borderRadius: '6px' }}><span style={{ color: colors.success, fontWeight: 'bold', fontFamily: 'monospace' }}>0</span><span style={{ color: colors.textDim, fontSize: '13px' }}>= bit DEVE corrispondere</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: colors.danger + '20', borderRadius: '6px' }}><span style={{ color: colors.danger, fontWeight: 'bold', fontFamily: 'monospace' }}>1</span><span style={{ color: colors.textDim, fontSize: '13px' }}>= bit viene IGNORATO</span></div></div></Glow><Table headers={['Wildcard', 'Significato', 'Equivalente']} rows={[['0.0.0.0', 'Match esatto (host)', '/32'],['0.0.0.255', 'Intera /24', '/24'],['0.0.255.255', 'Intera /16', '/16'],['0.255.255.255', 'Intera /8', '/8'],['255.255.255.255', 'Qualsiasi IP', 'any'],]} /></div><Box type="tip" title="Calcolo Wildcard">Wildcard = 255.255.255.255 - Subnet Mask. Es: /24 = 255.255.255.0 → Wildcard = 0.0.0.255</Box></div>),
+
+      // Slide 5: Wildcard Visualizer
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔢 Wildcard Mask - Visualizzatore</h2><WildcardVisualizer /><Box type="info" title="Legenda colori">🟢 Verde = bit che DEVE corrispondere (0 nella wildcard) | 🔴 Rosso = bit IGNORATO (1 nella wildcard)</Box></div>),
+
+      // Slide 6: Extended Syntax
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>⌨️ Sintassi Extended ACL</h2><Code title="Formato completo">{`access-list <number> <permit|deny> <protocol>
+  <source> <source-wildcard>
+  <destination> <destination-wildcard>
+  [operator port]
+
+# Operatori porta: eq, neq, gt, lt, range
+# Protocolli: ip, tcp, udp, icmp, eigrp, ospf...
+# Keywords: any (0.0.0.0 255.255.255.255), host (0.0.0.0)`}</Code><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}><Code title="Esempi pratici">{`! Permetti HTTP da LAN a qualsiasi
+access-list 100 permit tcp
+  192.168.1.0 0.0.0.255 any eq 80
+
+! Permetti HTTPS
+access-list 100 permit tcp
+  192.168.1.0 0.0.0.255 any eq 443
+
+! Permetti DNS
+access-list 100 permit udp
+  192.168.1.0 0.0.0.255 any eq 53
+
+! Blocca tutto il resto
+access-list 100 deny ip any any`}</Code><Code title="Nomi porte comuni">{`! Puoi usare nomi invece di numeri:
+eq www       ! 80
+eq https     ! 443
+eq ssh       ! 22
+eq telnet    ! 23
+eq ftp       ! 21
+eq ftp-data  ! 20
+eq smtp      ! 25
+eq dns       ! 53
+eq pop3      ! 110
+eq ntp       ! 123`}</Code></div></div>),
+
+      // Slide 7: Applicazione
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔌 Applicazione alle Interfacce</h2><Code title="Applicare ACL">{`! Applica ACL 100 in ingresso su GigabitEthernet0/0
+interface GigabitEthernet0/0
+  ip access-group 100 in
+
+! Applica ACL 100 in uscita su GigabitEthernet0/1
+interface GigabitEthernet0/1
+  ip access-group 100 out
+
+! Verifica
+show access-lists
+show ip interface GigabitEthernet0/0`}</Code><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '16px' }}><div style={{ background: colors.success + '20', border: `1px solid ${colors.success}`, borderRadius: '12px', padding: '16px', textAlign: 'center' }}><div style={{ fontSize: '28px', marginBottom: '8px' }}>📥</div><div style={{ color: colors.success, fontWeight: 'bold', marginBottom: '4px' }}>IN (inbound)</div><div style={{ color: colors.textDim, fontSize: '12px' }}>Filtra traffico CHE ENTRA nell'interfaccia (prima del routing)</div></div><div style={{ background: colors.purple + '20', border: `1px solid ${colors.purple}`, borderRadius: '12px', padding: '16px', textAlign: 'center' }}><div style={{ fontSize: '28px', marginBottom: '8px' }}>📤</div><div style={{ color: colors.purple, fontWeight: 'bold', marginBottom: '4px' }}>OUT (outbound)</div><div style={{ color: colors.textDim, fontSize: '12px' }}>Filtra traffico CHE ESCE dall'interfaccia (dopo il routing)</div></div></div></div>),
+
+      // Slide 8: Scenario 1
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📝 Scenario 1: Blocca Subnet</h2><div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px', marginBottom: '20px' }}><p style={{ color: colors.textDim, marginBottom: '16px' }}><strong style={{ color: colors.danger }}>Obiettivo:</strong> Bloccare la rete 10.10.10.0/24 dall'accedere alla rete 192.168.1.0/24, ma permettere tutto il resto.</p><svg viewBox="0 0 500 120" style={{ width: '100%', maxWidth: '500px', margin: '0 auto', display: 'block' }}><rect x="20" y="30" width="100" height="60" fill={colors.danger + '30'} stroke={colors.danger} rx="8" /><text x="70" y="55" textAnchor="middle" fill={colors.danger} fontSize="10" fontWeight="bold">10.10.10.0/24</text><text x="70" y="75" textAnchor="middle" fill={colors.textMuted} fontSize="9">Blocked</text><rect x="200" y="30" width="80" height="60" fill={colors.bgLight} stroke={colors.accent} rx="8" /><text x="240" y="65" textAnchor="middle" fill={colors.accent} fontSize="20">🔥</text><rect x="360" y="30" width="100" height="60" fill={colors.success + '30'} stroke={colors.success} rx="8" /><text x="410" y="55" textAnchor="middle" fill={colors.success} fontSize="10" fontWeight="bold">192.168.1.0/24</text><text x="410" y="75" textAnchor="middle" fill={colors.textMuted} fontSize="9">Protected</text><line x1="120" y1="60" x2="195" y2="60" stroke={colors.danger} strokeWidth="2" strokeDasharray="5,5" /><line x1="285" y1="60" x2="355" y2="60" stroke={colors.success} strokeWidth="2" /></svg></div><Code title="Soluzione">{`! Nega 10.10.10.0/24 verso 192.168.1.0/24
+access-list 101 deny ip 10.10.10.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+! Permetti tutto il resto (importante!)
+access-list 101 permit ip any any
+
+! Applica sull'interfaccia verso 10.10.10.0
+interface GigabitEthernet0/0
+  ip access-group 101 in`}</Code></div>),
+
+      // Slide 9: Scenario 2
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📝 Scenario 2: Solo Web</h2><div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px', marginBottom: '20px' }}><p style={{ color: colors.textDim }}><strong style={{ color: colors.success }}>Obiettivo:</strong> Permettere alla LAN 192.168.1.0/24 di navigare solo HTTP/HTTPS e risolvere DNS, bloccare tutto il resto.</p></div><Code title="Soluzione">{`! Permetti HTTP
+access-list 110 permit tcp 192.168.1.0 0.0.0.255 any eq 80
+
+! Permetti HTTPS
+access-list 110 permit tcp 192.168.1.0 0.0.0.255 any eq 443
+
+! Permetti DNS (TCP e UDP)
+access-list 110 permit udp 192.168.1.0 0.0.0.255 any eq 53
+access-list 110 permit tcp 192.168.1.0 0.0.0.255 any eq 53
+
+! Implicit deny blocca tutto il resto
+
+! Applica in uscita verso Internet
+interface GigabitEthernet0/1
+  ip access-group 110 out`}</Code><Box type="warn" title="Attenzione!">Ricorda: senza "permit ip any any" alla fine, c'è sempre un implicit deny che blocca tutto ciò che non è esplicitamente permesso!</Box></div>),
+
+      // Slide 10: Named ACL
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📛 Named ACL</h2><p style={{ color: colors.textDim, marginBottom: '16px' }}>Le Named ACL usano nomi invece di numeri, sono più leggibili e permettono di modificare singole righe.</p><Code title="Named ACL">{`! Crea Named Extended ACL
+ip access-list extended WEB-FILTER
+  permit tcp 192.168.1.0 0.0.0.255 any eq 80
+  permit tcp 192.168.1.0 0.0.0.255 any eq 443
+  deny ip any any log
+
+! Crea Named Standard ACL
+ip access-list standard ADMIN-ONLY
+  permit 10.0.0.0 0.0.0.255
+  deny any
+
+! Applica
+interface GigabitEthernet0/0
+  ip access-group WEB-FILTER in
+
+! Modifica (puoi inserire/rimuovere righe!)
+ip access-list extended WEB-FILTER
+  15 permit tcp any any eq 22   ! Inserisce alla posizione 15
+  no 20                          ! Rimuove riga 20`}</Code><Box type="success" title="Vantaggi Named ACL">Più leggibili, modificabili senza ricreare l'intera lista, nessun limite numerico.</Box></div>),
+
+      // Slide 11: Simulatore
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🧪 Simulatore ACL Interattivo</h2><ACLSimulator /></div>),
+
+      // Slide 12: Best Practices
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>✅ Best Practices ACL</h2><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>{[['1️⃣', 'Ordine delle regole', 'Metti le regole più specifiche PRIMA di quelle generiche.', colors.info],['2️⃣', 'Posizionamento', 'Standard ACL vicino alla dest, Extended vicino alla source.', colors.purple],['3️⃣', 'Documenta', 'Usa remark per commentare le ACL. Facilita la manutenzione.', colors.success],['4️⃣', 'Test prima di applicare', 'Usa "show access-lists" per verificare. Testa in lab.', colors.warn],['5️⃣', 'Logging', 'Aggiungi "log" alle regole deny per troubleshooting.', colors.cyan],['6️⃣', 'Evita "any any"', 'Sii specifico. "permit ip any any" vanifica l\'ACL.', colors.danger],].map(([num, title, desc, color]) => (<div key={title} style={{ background: colors.bgCard, border: `1px solid ${color}40`, borderRadius: '10px', padding: '16px' }}><div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}><span style={{ fontSize: '20px' }}>{num}</span><span style={{ color: color, fontWeight: '600' }}>{title}</span></div><p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.5' }}>{desc}</p></div>))}</div></div>),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+      useEffect(() => { const handler = e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); } if (e.key === 'Escape') window.location.href = 'index.html'; }; window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, []);
+      return (<div style={{ minHeight: '100vh', background: colors.bg }}><div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a><span style={{ color: colors.border }}>|</span><span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 5</span><span style={{ color: colors.textDim }}>Access Control List</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span><div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}><div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: colors.accent, borderRadius: '2px', transition: 'width 0.3s' }} /></div></div></div><div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>{slides[current]()}</div><div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>{current === 0 && <a href="modulo4-windows-firewall.html" style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, textDecoration: 'none', fontSize: '14px' }}>← Modulo 4</a>}{current > 0 && <button onClick={prev} style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer', fontSize: '14px' }}>← Indietro</button>}<button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>{current === total - 1 && <a href="modulo6-quiz.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, #00d4aa, #059669)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 6 →</a>}</div></div>);
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

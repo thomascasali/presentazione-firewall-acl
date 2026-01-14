@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 1 - Fondamenti Firewall</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const colors = {
+      bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b',
+      accent: '#f59e0b', accentAlt: '#fbbf24',
+      text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b',
+      border: '#334155',
+      success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa'
+    };
+
+    const Code = ({ children, title }) => (
+      <div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>
+        {title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}
+        <pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', lineHeight: '1.5', color: colors.text, overflowX: 'auto' }}>{children}</pre>
+      </div>
+    );
+
+    const Box = ({ type = 'info', title, children }) => {
+      const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' } };
+      const { c, i } = cfg[type];
+      return (
+        <div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div>
+          <div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div>
+        </div>
+      );
+    };
+
+    const Glow = ({ children, color = colors.accent }) => (
+      <div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}>
+        <div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div>
+      </div>
+    );
+
+    const slides = [
+      // Slide 1: Title
+      () => (
+        <div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔥</div>
+          <div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 1</div>
+          <h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Fondamenti Firewall</h1>
+          <p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '500px', lineHeight: '1.6' }}>Cos'è un firewall, dove posizionarlo e quali principi seguire per una corretta configurazione</p>
+        </div>
+      ),
+
+      // Slide 2: Cos'è un Firewall
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🛡️</span> Cos'è un Firewall?
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div>
+              <Glow>
+                <p style={{ color: colors.textDim, lineHeight: '1.7', fontSize: '15px' }}>
+                  Un <strong style={{ color: colors.accent }}>firewall</strong> è un sistema di sicurezza che monitora e controlla
+                  il traffico di rete in ingresso e in uscita, basandosi su un insieme di regole predefinite.
+                </p>
+                <p style={{ color: colors.textDim, lineHeight: '1.7', fontSize: '15px', marginTop: '12px' }}>
+                  Funziona come un <strong style={{ color: colors.accent }}>filtro</strong> tra reti con diversi livelli di fiducia
+                  (es. Internet vs LAN aziendale).
+                </p>
+              </Glow>
+              <Box type="tip" title="Analogia">
+                Come un buttafuori all'ingresso di un locale: controlla chi entra e chi esce in base a una lista di regole.
+                Può bloccare persone indesiderate e permettere l'accesso solo agli autorizzati.
+              </Box>
+            </div>
+            <div>
+              <h3 style={{ color: colors.text, marginBottom: '14px', fontSize: '16px' }}>📋 Funzioni Principali</h3>
+              <ul style={{ color: colors.textDim, lineHeight: '2', paddingLeft: '20px' }}>
+                <li><strong style={{ color: colors.text }}>Filtraggio traffico</strong> - basato su regole</li>
+                <li><strong style={{ color: colors.text }}>Blocco accessi</strong> - non autorizzati</li>
+                <li><strong style={{ color: colors.text }}>Logging</strong> - registrazione connessioni</li>
+                <li><strong style={{ color: colors.text }}>Protezione attacchi</strong> - DoS, port scan</li>
+                <li><strong style={{ color: colors.text }}>Segmentazione</strong> - creazione DMZ</li>
+                <li><strong style={{ color: colors.text }}>NAT</strong> - Network Address Translation</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      ),
+
+      // Slide 3: Posizionamento
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📍</span> Posizionamento del Firewall
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+            <div>
+              <h3 style={{ color: colors.text, marginBottom: '16px' }}>🌐 Firewall Perimetrale</h3>
+              <svg viewBox="0 0 400 180" style={{ width: '100%', background: colors.bgCard, borderRadius: '12px', padding: '16px' }}>
+                <defs>
+                  <linearGradient id="lanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor={colors.success + '40'} />
+                    <stop offset="100%" stopColor={colors.success + '20'} />
+                  </linearGradient>
+                </defs>
+                <ellipse cx="60" cy="90" rx="45" ry="35" fill={colors.danger + '30'} stroke={colors.danger} strokeWidth="2" />
+                <text x="60" y="85" textAnchor="middle" fill={colors.danger} fontSize="11" fontWeight="bold">Internet</text>
+                <text x="60" y="100" textAnchor="middle" fill={colors.textMuted} fontSize="9">☁️ Untrusted</text>
+                <rect x="140" y="55" width="60" height="70" fill={colors.bgLight} stroke={colors.accent} strokeWidth="3" rx="8" />
+                <text x="170" y="85" textAnchor="middle" fill={colors.accent} fontSize="24">🔥</text>
+                <text x="170" y="110" textAnchor="middle" fill={colors.accent} fontSize="10" fontWeight="bold">FIREWALL</text>
+                <rect x="230" y="30" width="150" height="120" fill="url(#lanGrad)" stroke={colors.success} strokeWidth="2" rx="8" />
+                <text x="305" y="55" textAnchor="middle" fill={colors.success} fontSize="11" fontWeight="bold">LAN - Trusted Zone</text>
+                <rect x="245" y="70" width="50" height="35" fill={colors.bgCard} stroke={colors.border} rx="6" />
+                <text x="270" y="92" textAnchor="middle" fill={colors.textDim} fontSize="18">💻</text>
+                <rect x="305" y="70" width="50" height="35" fill={colors.bgCard} stroke={colors.border} rx="6" />
+                <text x="330" y="92" textAnchor="middle" fill={colors.textDim} fontSize="18">🖥️</text>
+                <rect x="275" y="115" width="50" height="25" fill={colors.bgCard} stroke={colors.border} rx="4" />
+                <text x="300" y="132" textAnchor="middle" fill={colors.textDim} fontSize="16">🖨️</text>
+                <line x1="105" y1="90" x2="135" y2="90" stroke={colors.textMuted} strokeWidth="3" markerEnd="url(#arrow)" />
+                <line x1="200" y1="90" x2="225" y2="90" stroke={colors.textMuted} strokeWidth="3" />
+              </svg>
+              <p style={{ color: colors.textDim, fontSize: '13px', marginTop: '12px', lineHeight: '1.5' }}>
+                Si posiziona al <strong style={{ color: colors.text }}>confine</strong> tra la rete interna e Internet.
+                Protegge l'intera rete locale.
+              </p>
+            </div>
+            <div>
+              <h3 style={{ color: colors.text, marginBottom: '16px' }}>💻 Host-based Firewall</h3>
+              <svg viewBox="0 0 320 180" style={{ width: '100%', background: colors.bgCard, borderRadius: '12px', padding: '16px' }}>
+                <rect x="80" y="20" width="160" height="140" fill={colors.bgLight} stroke={colors.info} strokeWidth="2" rx="12" />
+                <text x="160" y="50" textAnchor="middle" fill={colors.text} fontSize="12" fontWeight="bold">Single Host</text>
+                <rect x="100" y="65" width="120" height="35" fill={colors.accent + '30'} stroke={colors.accent} strokeWidth="2" rx="6" />
+                <text x="160" y="88" textAnchor="middle" fill={colors.accent} fontSize="11" fontWeight="bold">🔥 Host Firewall</text>
+                <rect x="100" y="110" width="120" height="35" fill={colors.bgCard} stroke={colors.border} rx="6" />
+                <text x="160" y="133" textAnchor="middle" fill={colors.textDim} fontSize="11">OS + Applications</text>
+                <path d="M 40 90 L 95 90" stroke={colors.textMuted} strokeWidth="2" strokeDasharray="5,5" />
+                <text x="20" y="95" fill={colors.textMuted} fontSize="10">🌐</text>
+              </svg>
+              <p style={{ color: colors.textDim, fontSize: '13px', marginTop: '12px', lineHeight: '1.5' }}>
+                Installato <strong style={{ color: colors.text }}>sul singolo host</strong>. Esempi:
+                Windows Firewall, iptables, nftables su Linux.
+              </p>
+            </div>
+          </div>
+          <Box type="success" title="Best Practice: Defense in Depth">
+            Usare ENTRAMBI: firewall perimetrale per proteggere la rete + host-based firewall su ogni macchina per protezione locale.
+          </Box>
+        </div>
+      ),
+
+      // Slide 4: DMZ
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🏰</span> Architettura con DMZ
+          </h2>
+          <svg viewBox="0 0 600 280" style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block', background: colors.bgCard, borderRadius: '12px', padding: '20px' }}>
+            <ellipse cx="60" cy="140" rx="45" ry="35" fill={colors.danger + '30'} stroke={colors.danger} strokeWidth="2" />
+            <text x="60" y="135" textAnchor="middle" fill={colors.danger} fontSize="10" fontWeight="bold">Internet</text>
+            <text x="60" y="150" textAnchor="middle" fill={colors.textMuted} fontSize="8">Untrusted</text>
+            <rect x="130" y="100" width="50" height="80" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="8" />
+            <text x="155" y="135" textAnchor="middle" fill={colors.accent} fontSize="20">🔥</text>
+            <text x="155" y="160" textAnchor="middle" fill={colors.accent} fontSize="8">FW Est</text>
+            <rect x="200" y="40" width="150" height="200" fill={colors.warn + '15'} stroke={colors.warn} strokeWidth="2" rx="8" />
+            <text x="275" y="65" textAnchor="middle" fill={colors.warn} fontSize="11" fontWeight="bold">DMZ</text>
+            <text x="275" y="80" textAnchor="middle" fill={colors.textMuted} fontSize="8">Demilitarized Zone</text>
+            <rect x="220" y="95" width="110" height="35" fill={colors.bgCard} stroke={colors.border} rx="6" />
+            <text x="275" y="118" textAnchor="middle" fill={colors.textDim} fontSize="10">🌐 Web Server</text>
+            <rect x="220" y="140" width="110" height="35" fill={colors.bgCard} stroke={colors.border} rx="6" />
+            <text x="275" y="163" textAnchor="middle" fill={colors.textDim} fontSize="10">📧 Mail Server</text>
+            <rect x="220" y="185" width="110" height="35" fill={colors.bgCard} stroke={colors.border} rx="6" />
+            <text x="275" y="208" textAnchor="middle" fill={colors.textDim} fontSize="10">🔐 VPN Gateway</text>
+            <rect x="370" y="100" width="50" height="80" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="8" />
+            <text x="395" y="135" textAnchor="middle" fill={colors.accent} fontSize="20">🔥</text>
+            <text x="395" y="160" textAnchor="middle" fill={colors.accent} fontSize="8">FW Int</text>
+            <rect x="440" y="60" width="140" height="160" fill={colors.success + '20'} stroke={colors.success} strokeWidth="2" rx="8" />
+            <text x="510" y="85" textAnchor="middle" fill={colors.success} fontSize="11" fontWeight="bold">LAN Interna</text>
+            <text x="510" y="100" textAnchor="middle" fill={colors.textMuted} fontSize="8">Trusted Zone</text>
+            <rect x="460" y="115" width="80" height="30" fill={colors.bgCard} stroke={colors.border} rx="4" />
+            <text x="500" y="135" textAnchor="middle" fill={colors.textDim} fontSize="9">💻 Client</text>
+            <rect x="460" y="155" width="80" height="30" fill={colors.bgCard} stroke={colors.border} rx="4" />
+            <text x="500" y="175" textAnchor="middle" fill={colors.textDim} fontSize="9">🗄️ DB Server</text>
+            <line x1="105" y1="140" x2="125" y2="140" stroke={colors.textMuted} strokeWidth="2" />
+            <line x1="180" y1="140" x2="195" y2="140" stroke={colors.textMuted} strokeWidth="2" />
+            <line x1="350" y1="140" x2="365" y2="140" stroke={colors.textMuted} strokeWidth="2" />
+            <line x1="420" y1="140" x2="435" y2="140" stroke={colors.textMuted} strokeWidth="2" />
+          </svg>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+            <Box type="warn" title="DMZ - Zona Demilitarizzata">
+              Area "semi-fidata" dove si posizionano i servizi pubblici (web, mail, DNS).
+              Accessibile da Internet ma isolata dalla LAN interna.
+            </Box>
+            <Box type="info" title="Dual Firewall">
+              Architettura più sicura: il primo FW filtra Internet→DMZ, il secondo filtra DMZ→LAN.
+              Compromettere la DMZ non espone la LAN.
+            </Box>
+          </div>
+        </div>
+      ),
+
+      // Slide 5: Principi
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📜</span> Principi Fondamentali
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <Glow color={colors.success}>
+              <h3 style={{ color: colors.success, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🚫</span> Default Deny (Whitelist)
+              </h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '12px' }}>
+                <strong style={{ color: colors.text }}>Tutto è bloccato</strong> per default.
+                Si abilitano esplicitamente solo i servizi necessari.
+              </p>
+              <Code>{`# Approccio Default Deny
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT`}</Code>
+              <div style={{ color: colors.success, fontSize: '13px', marginTop: '10px' }}>✓ Più sicuro - Minima superficie di attacco</div>
+            </Glow>
+            <Glow color={colors.danger}>
+              <h3 style={{ color: colors.danger, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>✅</span> Default Allow (Blacklist)
+              </h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '12px' }}>
+                <strong style={{ color: colors.text }}>Tutto è permesso</strong> per default.
+                Si bloccano esplicitamente solo le minacce note.
+              </p>
+              <Code>{`# Approccio Default Allow
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -A INPUT -s 10.0.0.5 -j DROP`}</Code>
+              <div style={{ color: colors.danger, fontSize: '13px', marginTop: '10px' }}>✗ Meno sicuro - Può far passare minacce sconosciute</div>
+            </Glow>
+          </div>
+          <Box type="tip" title="Principio del Minimo Privilegio">
+            Ogni servizio, utente o sistema dovrebbe avere accesso solo alle risorse strettamente necessarie per svolgere la propria funzione.
+            Applicare sempre "need-to-know" e "need-to-access".
+          </Box>
+        </div>
+      ),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const [menu, setMenu] = useState(false);
+      const total = slides.length;
+
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+
+      useEffect(() => {
+        const handler = e => {
+          if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+          if (e.key === 'm') setMenu(m => !m);
+          if (e.key === 'Escape') window.location.href = 'index.html';
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+      }, []);
+
+      return (
+        <div style={{ minHeight: '100vh', background: colors.bg }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a>
+              <span style={{ color: colors.border }}>|</span>
+              <span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 1</span>
+              <span style={{ color: colors.textDim }}>Fondamenti Firewall</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span>
+              <div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}>
+                <div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: colors.accent, borderRadius: '2px', transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
+            {slides[current]()}
+          </div>
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>
+            <button onClick={prev} disabled={current === 0} style={{ padding: '10px 24px', background: current === 0 ? colors.bgLight : colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: current === 0 ? colors.textMuted : colors.text, cursor: current === 0 ? 'not-allowed' : 'pointer', fontSize: '14px' }}>← Indietro</button>
+            <button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>
+            {current === total - 1 && (
+              <a href="modulo2-firewall-types.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.success}, #16a34a)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 2 →</a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
