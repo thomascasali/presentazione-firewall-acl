@@ -292,7 +292,9 @@ iptables -A INPUT -s 10.0.0.5 -j DROP`}</Code>
             </div>
           </div>
           <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
-            {slides[current]()}
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+              {slides[current]()}
+            </div>
           </div>
           <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>
             <button onClick={prev} disabled={current === 0} style={{ padding: '10px 24px', background: current === 0 ? colors.bgLight : colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: current === 0 ? colors.textMuted : colors.text, cursor: current === 0 ? 'not-allowed' : 'pointer', fontSize: '14px' }}>← Indietro</button>
