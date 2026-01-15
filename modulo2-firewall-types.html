@@ -429,7 +429,7 @@
             {current === 0 && <a href="modulo1-firewall-intro.html" style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, textDecoration: 'none', fontSize: '14px' }}>← Modulo 1</a>}
             {current > 0 && <button onClick={prev} style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer', fontSize: '14px' }}>← Indietro</button>}
             <button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>
-            {current === total - 1 && <a href="modulo3-linux-firewall.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.info}, #0284c7)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 3 →</a>}
+            {current === total - 1 && <a href="modulo3-acl.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.info}, #0284c7)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 3 →</a>}
           </div>
         </div>
       );
