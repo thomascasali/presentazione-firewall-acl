@@ -102,6 +102,418 @@ netsh advfirewall firewall delete rule name="Allow HTTP"
 
 # Reset firewall (attenzione!)
 netsh advfirewall reset`}</Code><Table headers={['Aspetto', 'Windows Firewall', 'iptables/nftables']} rows={[['Tipo', 'Host-based, GUI', 'Host o Perimetrale, CLI'],['Filtraggio App', '✓ Per eseguibile', '✗ Solo IP/Porta'],['Profili', 'Domain/Private/Public', 'No (chains)'],['Stateful', '✓ Automatico', '✓ Con -m state'],['Gestione', 'GUI + PS + GPO', 'Solo CLI/script'],]} /></div>),
+
+      // Slide 7: Profile Switcher Simulator
+      () => {
+        const ProfileSwitcher = () => {
+          const [profile, setProfile] = useState('Public');
+
+          const rules = [
+            { name: 'File and Printer Sharing', domain: true, private: true, public: false, icon: '📁' },
+            { name: 'Network Discovery', domain: true, private: true, public: false, icon: '🔍' },
+            { name: 'Remote Desktop', domain: true, private: true, public: false, icon: '🖥️' },
+            { name: 'Windows Remote Management', domain: true, private: false, public: false, icon: '⚙️' },
+            { name: 'Core Networking (ICMP)', domain: true, private: true, public: true, icon: '🌐' },
+            { name: 'DHCP Client', domain: true, private: true, public: true, icon: '📡' },
+            { name: 'DNS Client', domain: true, private: true, public: true, icon: '🔤' },
+            { name: 'Windows Update', domain: true, private: true, public: true, icon: '🔄' },
+          ];
+
+          const profileColors = { Domain: colors.info, Private: colors.success, Public: colors.danger };
+          const profileIcons = { Domain: '🏢', Private: '🏠', Public: '☕' };
+          const profileDesc = {
+            Domain: 'Connesso a un dominio Active Directory. Regole gestite centralmente.',
+            Private: 'Rete domestica o aziendale fidata. Condivisione abilitata.',
+            Public: 'WiFi pubblico (bar, hotel). Massima protezione attiva.'
+          };
+
+          const isAllowed = (rule) => {
+            if (profile === 'Domain') return rule.domain;
+            if (profile === 'Private') return rule.private;
+            return rule.public;
+          };
+
+          return (
+            <div style={{ display: 'grid', gap: '24px' }}>
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {['Domain', 'Private', 'Public'].map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setProfile(p)}
+                    style={{
+                      padding: '16px 28px',
+                      background: profile === p ? profileColors[p] + '30' : colors.bgCard,
+                      border: `2px solid ${profile === p ? profileColors[p] : colors.border}`,
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      minWidth: '140px'
+                    }}
+                  >
+                    <div style={{ fontSize: '28px', marginBottom: '6px' }}>{profileIcons[p]}</div>
+                    <div style={{ color: profileColors[p], fontWeight: 'bold' }}>{p}</div>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ background: profileColors[profile] + '15', border: `1px solid ${profileColors[profile]}40`, borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                <span style={{ fontSize: '20px', marginRight: '8px' }}>{profileIcons[profile]}</span>
+                <span style={{ color: profileColors[profile], fontWeight: '600' }}>Profilo {profile} attivo</span>
+                <p style={{ color: colors.textDim, fontSize: '13px', marginTop: '8px' }}>{profileDesc[profile]}</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                {rules.map((rule, idx) => {
+                  const allowed = isAllowed(rule);
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '14px',
+                        background: allowed ? colors.success + '15' : colors.danger + '15',
+                        border: `1px solid ${allowed ? colors.success : colors.danger}40`,
+                        borderRadius: '10px',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      <span style={{ fontSize: '22px' }}>{rule.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: colors.text, fontSize: '13px', fontWeight: '500' }}>{rule.name}</div>
+                        <div style={{ color: allowed ? colors.success : colors.danger, fontSize: '11px', marginTop: '2px' }}>
+                          {allowed ? '✓ Consentito' : '✗ Bloccato'}
+                        </div>
+                      </div>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: allowed ? colors.success : colors.danger }} />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ background: colors.bgLight, borderRadius: '10px', padding: '14px', display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: colors.success, fontSize: '24px', fontWeight: 'bold' }}>
+                    {rules.filter(r => isAllowed(r)).length}
+                  </div>
+                  <div style={{ color: colors.textDim, fontSize: '12px' }}>Regole Attive</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: colors.danger, fontSize: '24px', fontWeight: 'bold' }}>
+                    {rules.filter(r => !isAllowed(r)).length}
+                  </div>
+                  <div style={{ color: colors.textDim, fontSize: '12px' }}>Regole Bloccate</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: profileColors[profile], fontSize: '24px', fontWeight: 'bold' }}>
+                    {profile === 'Public' ? 'ALTO' : profile === 'Private' ? 'MEDIO' : 'BASSO'}
+                  </div>
+                  <div style={{ color: colors.textDim, fontSize: '12px' }}>Livello Sicurezza</div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <div style={{ padding: '30px' }}>
+            <h2 style={{ color: colors.accent, marginBottom: '8px' }}>🔀 Simulatore: Profile Switcher</h2>
+            <p style={{ color: colors.textDim, marginBottom: '24px' }}>Seleziona un profilo per vedere quali regole firewall sono attive</p>
+            <ProfileSwitcher />
+          </div>
+        );
+      },
+
+      // Slide 8: PowerShell Rule Builder
+      () => {
+        const PowerShellRuleBuilder = () => {
+          const [ruleName, setRuleName] = useState('My Custom Rule');
+          const [direction, setDirection] = useState('Inbound');
+          const [action, setAction] = useState('Allow');
+          const [protocol, setProtocol] = useState('TCP');
+          const [port, setPort] = useState('443');
+          const [profiles, setProfiles] = useState(['Private']);
+          const [useProgram, setUseProgram] = useState(false);
+          const [program, setProgram] = useState('C:\\Program Files\\App\\app.exe');
+          const [remoteIP, setRemoteIP] = useState('');
+
+          const toggleProfile = (p) => {
+            if (profiles.includes(p)) {
+              if (profiles.length > 1) setProfiles(profiles.filter(x => x !== p));
+            } else {
+              setProfiles([...profiles, p]);
+            }
+          };
+
+          const buildCommand = () => {
+            let cmd = 'New-NetFirewallRule `\n';
+            cmd += `    -DisplayName "${ruleName}" \`\n`;
+            cmd += `    -Direction ${direction} \`\n`;
+            cmd += `    -Action ${action} \`\n`;
+
+            if (useProgram) {
+              cmd += `    -Program "${program}" \`\n`;
+            } else {
+              cmd += `    -Protocol ${protocol} \`\n`;
+              if (protocol !== 'ICMP') {
+                cmd += `    -LocalPort ${port} \`\n`;
+              }
+            }
+
+            if (remoteIP) {
+              cmd += `    -RemoteAddress ${remoteIP} \`\n`;
+            }
+
+            cmd += `    -Profile ${profiles.join(',')}`;
+            return cmd;
+          };
+
+          const presets = [
+            { name: 'Web Server HTTP', direction: 'Inbound', action: 'Allow', protocol: 'TCP', port: '80', profiles: ['Private', 'Domain'] },
+            { name: 'Web Server HTTPS', direction: 'Inbound', action: 'Allow', protocol: 'TCP', port: '443', profiles: ['Private', 'Domain'] },
+            { name: 'SSH Server', direction: 'Inbound', action: 'Allow', protocol: 'TCP', port: '22', profiles: ['Private'] },
+            { name: 'Block Telnet', direction: 'Inbound', action: 'Block', protocol: 'TCP', port: '23', profiles: ['Domain', 'Private', 'Public'] },
+            { name: 'RDP Access', direction: 'Inbound', action: 'Allow', protocol: 'TCP', port: '3389', profiles: ['Domain', 'Private'] },
+          ];
+
+          const applyPreset = (preset) => {
+            setRuleName(preset.name);
+            setDirection(preset.direction);
+            setAction(preset.action);
+            setProtocol(preset.protocol);
+            setPort(preset.port);
+            setProfiles(preset.profiles);
+            setUseProgram(false);
+          };
+
+          const actionColors = { Allow: colors.success, Block: colors.danger };
+          const dirColors = { Inbound: colors.info, Outbound: colors.purple };
+
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+              <div>
+                <h4 style={{ color: colors.textDim, marginBottom: '12px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Configurazione Regola</h4>
+
+                <div style={{ display: 'grid', gap: '14px' }}>
+                  <div>
+                    <label style={{ color: colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '4px' }}>Nome Regola</label>
+                    <input
+                      type="text"
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '13px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ color: colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '4px' }}>Direzione</label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {['Inbound', 'Outbound'].map(d => (
+                          <button
+                            key={d}
+                            onClick={() => setDirection(d)}
+                            style={{
+                              flex: 1,
+                              padding: '8px',
+                              background: direction === d ? dirColors[d] + '30' : colors.bgLight,
+                              border: `1px solid ${direction === d ? dirColors[d] : colors.border}`,
+                              borderRadius: '6px',
+                              color: direction === d ? dirColors[d] : colors.textDim,
+                              cursor: 'pointer',
+                              fontSize: '11px'
+                            }}
+                          >
+                            {d === 'Inbound' ? '📥' : '📤'} {d}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ color: colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '4px' }}>Azione</label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {['Allow', 'Block'].map(a => (
+                          <button
+                            key={a}
+                            onClick={() => setAction(a)}
+                            style={{
+                              flex: 1,
+                              padding: '8px',
+                              background: action === a ? actionColors[a] + '30' : colors.bgLight,
+                              border: `1px solid ${action === a ? actionColors[a] : colors.border}`,
+                              borderRadius: '6px',
+                              color: action === a ? actionColors[a] : colors.textDim,
+                              cursor: 'pointer',
+                              fontSize: '11px'
+                            }}
+                          >
+                            {a === 'Allow' ? '✓' : '✗'} {a}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ color: colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '4px' }}>
+                      <input
+                        type="checkbox"
+                        checked={useProgram}
+                        onChange={(e) => setUseProgram(e.target.checked)}
+                        style={{ marginRight: '6px' }}
+                      />
+                      Filtra per Applicazione
+                    </label>
+                    {useProgram ? (
+                      <input
+                        type="text"
+                        value={program}
+                        onChange={(e) => setProgram(e.target.value)}
+                        placeholder="C:\Path\to\app.exe"
+                        style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '12px', fontFamily: 'JetBrains Mono, monospace' }}
+                      />
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <select
+                          value={protocol}
+                          onChange={(e) => setProtocol(e.target.value)}
+                          style={{ padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '12px' }}
+                        >
+                          <option value="TCP">TCP</option>
+                          <option value="UDP">UDP</option>
+                          <option value="ICMP">ICMP</option>
+                        </select>
+                        {protocol !== 'ICMP' && (
+                          <input
+                            type="text"
+                            value={port}
+                            onChange={(e) => setPort(e.target.value)}
+                            placeholder="Porta"
+                            style={{ padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '12px' }}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={{ color: colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '4px' }}>IP Remoto (opzionale)</label>
+                    <input
+                      type="text"
+                      value={remoteIP}
+                      onChange={(e) => setRemoteIP(e.target.value)}
+                      placeholder="es. 192.168.1.0/24 o Any"
+                      style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '12px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ color: colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '4px' }}>Profili</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {['Domain', 'Private', 'Public'].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => toggleProfile(p)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            background: profiles.includes(p) ? colors.accent + '30' : colors.bgLight,
+                            border: `1px solid ${profiles.includes(p) ? colors.accent : colors.border}`,
+                            borderRadius: '6px',
+                            color: profiles.includes(p) ? colors.accent : colors.textDim,
+                            cursor: 'pointer',
+                            fontSize: '10px'
+                          }}
+                        >
+                          {p === 'Domain' ? '🏢' : p === 'Private' ? '🏠' : '☕'} {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '16px' }}>
+                  <label style={{ color: colors.textMuted, fontSize: '11px', display: 'block', marginBottom: '8px' }}>Preset Comuni</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {presets.map((preset, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => applyPreset(preset)}
+                        style={{
+                          padding: '6px 10px',
+                          background: colors.bgLight,
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: '6px',
+                          color: colors.textDim,
+                          cursor: 'pointer',
+                          fontSize: '10px'
+                        }}
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ color: colors.textDim, marginBottom: '12px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Comando PowerShell Generato</h4>
+
+                <div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
+                  <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}>
+                      <span style={{ color: colors.info }}>●</span> PowerShell
+                    </span>
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(buildCommand())}
+                      style={{ padding: '4px 8px', background: colors.bgLight, border: 'none', borderRadius: '4px', color: colors.textDim, cursor: 'pointer', fontSize: '10px' }}
+                    >
+                      📋 Copia
+                    </button>
+                  </div>
+                  <pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', lineHeight: '1.6', color: colors.text, overflowX: 'auto' }}>
+                    <span style={{ color: colors.cyan }}>New-NetFirewallRule</span> `{'\n'}
+                    {'    '}<span style={{ color: colors.warn }}>-DisplayName</span> <span style={{ color: colors.success }}>"{ruleName}"</span> `{'\n'}
+                    {'    '}<span style={{ color: colors.warn }}>-Direction</span> <span style={{ color: dirColors[direction] }}>{direction}</span> `{'\n'}
+                    {'    '}<span style={{ color: colors.warn }}>-Action</span> <span style={{ color: actionColors[action] }}>{action}</span> `{'\n'}
+                    {useProgram ? (
+                      <>{'    '}<span style={{ color: colors.warn }}>-Program</span> <span style={{ color: colors.success }}>"{program}"</span> `{'\n'}</>
+                    ) : (
+                      <>
+                        {'    '}<span style={{ color: colors.warn }}>-Protocol</span> <span style={{ color: colors.purple }}>{protocol}</span> `{'\n'}
+                        {protocol !== 'ICMP' && <>{'    '}<span style={{ color: colors.warn }}>-LocalPort</span> <span style={{ color: colors.info }}>{port}</span> `{'\n'}</>}
+                      </>
+                    )}
+                    {remoteIP && <>{'    '}<span style={{ color: colors.warn }}>-RemoteAddress</span> <span style={{ color: colors.accent }}>{remoteIP}</span> `{'\n'}</>}
+                    {'    '}<span style={{ color: colors.warn }}>-Profile</span> <span style={{ color: colors.accent }}>{profiles.join(',')}</span>
+                  </pre>
+                </div>
+
+                <div style={{ marginTop: '16px', padding: '14px', background: colors.bgLight, borderRadius: '8px' }}>
+                  <h5 style={{ color: colors.accent, marginBottom: '8px', fontSize: '12px' }}>📋 Riepilogo Regola</h5>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+                    <div><span style={{ color: colors.textMuted }}>Nome:</span> <span style={{ color: colors.text }}>{ruleName}</span></div>
+                    <div><span style={{ color: colors.textMuted }}>Azione:</span> <span style={{ color: actionColors[action] }}>{action}</span></div>
+                    <div><span style={{ color: colors.textMuted }}>Direzione:</span> <span style={{ color: dirColors[direction] }}>{direction}</span></div>
+                    <div><span style={{ color: colors.textMuted }}>Target:</span> <span style={{ color: colors.text }}>{useProgram ? 'Applicazione' : `${protocol}/${port}`}</span></div>
+                    <div style={{ gridColumn: 'span 2' }}><span style={{ color: colors.textMuted }}>Profili:</span> <span style={{ color: colors.accent }}>{profiles.join(', ')}</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <div style={{ padding: '30px' }}>
+            <h2 style={{ color: colors.accent, marginBottom: '8px' }}>🔧 Simulatore: PowerShell Rule Builder</h2>
+            <p style={{ color: colors.textDim, marginBottom: '24px' }}>Costruisci comandi New-NetFirewallRule interattivamente</p>
+            <PowerShellRuleBuilder />
+          </div>
+        );
+      },
     ];
 
     function App() {

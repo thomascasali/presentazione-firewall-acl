@@ -67,6 +67,160 @@
       </div>
     );
 
+    // Packet Inspector Simulator
+    const PacketInspector = () => {
+      const [fwType, setFwType] = useState(0);
+      const types = [
+        { name: 'Packet Filter', layers: [3, 4], color: colors.warn, desc: 'Analizza solo IP e porte' },
+        { name: 'Stateful', layers: [3, 4], color: colors.info, desc: 'Analizza IP, porte + stato connessione', extra: 'state' },
+        { name: 'Application Level', layers: [3, 4, 7], color: colors.purple, desc: 'Analizza anche contenuto applicativo', extra: 'content' },
+        { name: 'NGFW', layers: [3, 4, 7], color: colors.success, desc: 'Deep inspection + IPS + threat intelligence', extra: 'all' },
+      ];
+      const packet = {
+        l3: { src: '192.168.1.100', dst: '93.184.216.34', proto: 'IP', ttl: 64 },
+        l4: { srcPort: 52431, dstPort: 443, proto: 'TCP', flags: 'SYN' },
+        l7: { method: 'GET', host: 'example.com', path: '/login', cookie: 'session=abc123', ua: 'Mozilla/5.0' },
+        state: { status: 'NEW', direction: 'OUTBOUND', tracked: true },
+        threat: { reputation: 'Clean', category: 'Business', ssl: 'Valid cert' }
+      };
+      const t = types[fwType];
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px' }}>🔬 Packet Inspector - Cosa vede ogni firewall?</h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            {types.map((type, i) => (
+              <button key={i} onClick={() => setFwType(i)} style={{ padding: '8px 14px', background: fwType === i ? type.color : colors.bgLight, border: 'none', borderRadius: '6px', color: fwType === i ? '#000' : colors.text, cursor: 'pointer', fontSize: '11px', fontWeight: fwType === i ? '600' : '400' }}>{type.name}</button>
+            ))}
+          </div>
+          <p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '16px' }}>{t.desc}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div style={{ background: t.layers.includes(3) ? colors.warn + '20' : colors.bg, border: `2px solid ${t.layers.includes(3) ? colors.warn : colors.border}`, borderRadius: '8px', padding: '12px', opacity: t.layers.includes(3) ? 1 : 0.4 }}>
+              <div style={{ color: colors.warn, fontWeight: '600', fontSize: '12px', marginBottom: '8px' }}>Layer 3 - Network</div>
+              <div style={{ fontFamily: 'monospace', fontSize: '11px', color: colors.text, lineHeight: '1.6' }}>
+                <div>Src IP: <span style={{ color: colors.accent }}>{packet.l3.src}</span></div>
+                <div>Dst IP: <span style={{ color: colors.accent }}>{packet.l3.dst}</span></div>
+                <div>Protocol: {packet.l3.proto}</div>
+              </div>
+            </div>
+            <div style={{ background: t.layers.includes(4) ? colors.cyan + '20' : colors.bg, border: `2px solid ${t.layers.includes(4) ? colors.cyan : colors.border}`, borderRadius: '8px', padding: '12px', opacity: t.layers.includes(4) ? 1 : 0.4 }}>
+              <div style={{ color: colors.cyan, fontWeight: '600', fontSize: '12px', marginBottom: '8px' }}>Layer 4 - Transport</div>
+              <div style={{ fontFamily: 'monospace', fontSize: '11px', color: colors.text, lineHeight: '1.6' }}>
+                <div>Src Port: <span style={{ color: colors.accent }}>{packet.l4.srcPort}</span></div>
+                <div>Dst Port: <span style={{ color: colors.accent }}>{packet.l4.dstPort}</span> (HTTPS)</div>
+                <div>Flags: {packet.l4.flags}</div>
+              </div>
+            </div>
+            {(t.extra === 'state' || t.extra === 'all') && (
+              <div style={{ background: colors.info + '20', border: `2px solid ${colors.info}`, borderRadius: '8px', padding: '12px' }}>
+                <div style={{ color: colors.info, fontWeight: '600', fontSize: '12px', marginBottom: '8px' }}>🔄 Connection State</div>
+                <div style={{ fontFamily: 'monospace', fontSize: '11px', color: colors.text, lineHeight: '1.6' }}>
+                  <div>Status: <span style={{ color: colors.success }}>{packet.state.status}</span></div>
+                  <div>Direction: {packet.state.direction}</div>
+                  <div>Tracked: {packet.state.tracked ? '✓' : '✗'}</div>
+                </div>
+              </div>
+            )}
+            {(t.extra === 'content' || t.extra === 'all') && (
+              <div style={{ background: colors.purple + '20', border: `2px solid ${colors.purple}`, borderRadius: '8px', padding: '12px' }}>
+                <div style={{ color: colors.purple, fontWeight: '600', fontSize: '12px', marginBottom: '8px' }}>Layer 7 - Application</div>
+                <div style={{ fontFamily: 'monospace', fontSize: '11px', color: colors.text, lineHeight: '1.6' }}>
+                  <div>{packet.l7.method} {packet.l7.path}</div>
+                  <div>Host: <span style={{ color: colors.accent }}>{packet.l7.host}</span></div>
+                  <div>Cookie: {packet.l7.cookie.substring(0, 15)}...</div>
+                </div>
+              </div>
+            )}
+            {t.extra === 'all' && (
+              <div style={{ background: colors.success + '20', border: `2px solid ${colors.success}`, borderRadius: '8px', padding: '12px' }}>
+                <div style={{ color: colors.success, fontWeight: '600', fontSize: '12px', marginBottom: '8px' }}>🛡️ Threat Intelligence</div>
+                <div style={{ fontFamily: 'monospace', fontSize: '11px', color: colors.text, lineHeight: '1.6' }}>
+                  <div>Reputation: <span style={{ color: colors.success }}>{packet.threat.reputation}</span></div>
+                  <div>Category: {packet.threat.category}</div>
+                  <div>SSL: {packet.threat.ssl}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // Stateful Connection Tracker
+    const StatefulConnectionTracker = () => {
+      const [connections, setConnections] = useState([]);
+      const [log, setLog] = useState([]);
+
+      const addConnection = (type) => {
+        const id = Math.random().toString(36).substr(2, 6);
+        const ports = { http: 80, https: 443, ssh: 22, dns: 53 };
+        const conn = {
+          id,
+          srcIP: `192.168.1.${Math.floor(Math.random() * 200) + 10}`,
+          srcPort: Math.floor(Math.random() * 30000) + 30000,
+          dstIP: `${Math.floor(Math.random() * 200) + 50}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+          dstPort: ports[type],
+          proto: type === 'dns' ? 'UDP' : 'TCP',
+          state: 'NEW',
+          type,
+          ttl: 30
+        };
+        setConnections(c => [...c, conn]);
+        setLog(l => [...l, { time: new Date().toLocaleTimeString(), msg: `NEW ${conn.proto} ${conn.srcIP}:${conn.srcPort} → ${conn.dstIP}:${conn.dstPort}`, color: colors.success }].slice(-6));
+
+        setTimeout(() => {
+          setConnections(c => c.map(x => x.id === id ? { ...x, state: 'ESTABLISHED' } : x));
+          setLog(l => [...l, { time: new Date().toLocaleTimeString(), msg: `ESTABLISHED ${conn.srcIP}:${conn.srcPort}`, color: colors.info }].slice(-6));
+        }, 1000);
+
+        setTimeout(() => {
+          setConnections(c => c.filter(x => x.id !== id));
+          setLog(l => [...l, { time: new Date().toLocaleTimeString(), msg: `CLOSED ${conn.srcIP}:${conn.srcPort} (timeout)`, color: colors.textMuted }].slice(-6));
+        }, 8000);
+      };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px' }}>🔄 Stateful Connection Tracker</h3>
+          <p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '16px' }}>Simula la tabella connessioni di un firewall stateful. Le connessioni vengono tracciate e poi scadono.</p>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <button onClick={() => addConnection('http')} style={{ padding: '8px 14px', background: colors.success, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '11px' }}>+ HTTP (80)</button>
+            <button onClick={() => addConnection('https')} style={{ padding: '8px 14px', background: colors.info, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '11px' }}>+ HTTPS (443)</button>
+            <button onClick={() => addConnection('ssh')} style={{ padding: '8px 14px', background: colors.purple, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '11px' }}>+ SSH (22)</button>
+            <button onClick={() => addConnection('dns')} style={{ padding: '8px 14px', background: colors.warn, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '11px' }}>+ DNS (53)</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+            <div>
+              <div style={{ color: colors.textDim, fontSize: '11px', marginBottom: '8px', textTransform: 'uppercase' }}>Connection Table ({connections.length} active)</div>
+              <div style={{ background: colors.bg, borderRadius: '8px', padding: '10px', minHeight: '150px', maxHeight: '200px', overflowY: 'auto' }}>
+                {connections.length === 0 ? (
+                  <div style={{ color: colors.textMuted, fontSize: '12px', textAlign: 'center', padding: '40px' }}>Nessuna connessione attiva</div>
+                ) : connections.map(c => (
+                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: colors.bgLight, borderRadius: '4px', marginBottom: '4px', fontSize: '10px', fontFamily: 'monospace' }}>
+                    <span style={{ color: colors.text }}>{c.srcIP}:{c.srcPort}</span>
+                    <span style={{ color: colors.textMuted }}>→</span>
+                    <span style={{ color: colors.accent }}>{c.dstPort}</span>
+                    <span style={{ padding: '2px 6px', background: c.state === 'NEW' ? colors.success + '30' : colors.info + '30', borderRadius: '3px', color: c.state === 'NEW' ? colors.success : colors.info, fontSize: '9px' }}>{c.state}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ color: colors.textDim, fontSize: '11px', marginBottom: '8px', textTransform: 'uppercase' }}>Event Log</div>
+              <div style={{ background: colors.bg, borderRadius: '8px', padding: '10px', minHeight: '150px', maxHeight: '200px', overflowY: 'auto' }}>
+                {log.length === 0 ? (
+                  <div style={{ color: colors.textMuted, fontSize: '12px', textAlign: 'center', padding: '40px' }}>In attesa di eventi...</div>
+                ) : log.map((entry, i) => (
+                  <div key={i} style={{ fontSize: '10px', fontFamily: 'monospace', marginBottom: '4px', color: entry.color }}>
+                    <span style={{ color: colors.textMuted }}>[{entry.time}]</span> {entry.msg}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const OSILayer = ({ layer, name, color, active }) => (
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: active ? color + '30' : colors.bgLight, border: `2px solid ${active ? color : 'transparent'}`, borderRadius: '6px', marginBottom: '4px' }}>
         <span style={{ width: '24px', height: '24px', background: color, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold', fontSize: '12px' }}>{layer}</span>
@@ -383,6 +537,30 @@
             <strong>PMI:</strong> Stateful con antivirus è spesso sufficiente |
             <strong> Enterprise:</strong> NGFW è lo standard |
             <strong> Web server pubblici:</strong> Aggiungere WAF (Web Application Firewall)
+          </Box>
+        </div>
+      ),
+
+      // Slide 9: Packet Inspector Simulator
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔬 Simulatore: Packet Inspector</h2>
+          <PacketInspector />
+          <Box type="info" title="Cosa impari">
+            Seleziona i diversi tipi di firewall per vedere quali informazioni del pacchetto riescono ad analizzare.
+            Un NGFW vede molto più di un semplice packet filter!
+          </Box>
+        </div>
+      ),
+
+      // Slide 10: Stateful Connection Tracker
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔄 Simulatore: Connection Tracker</h2>
+          <StatefulConnectionTracker />
+          <Box type="tip" title="Stateful Inspection">
+            Un firewall stateful tiene traccia di tutte le connessioni attive. Questo permette di riconoscere
+            pacchetti di risposta legittimi e bloccare pacchetti che non appartengono a connessioni valide.
           </Box>
         </div>
       ),

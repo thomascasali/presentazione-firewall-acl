@@ -61,6 +61,167 @@
       </div>
     );
 
+    // Network Topology Simulator
+    const NetworkTopologyBuilder = () => {
+      const [scenario, setScenario] = useState(0);
+      const [packet, setPacket] = useState(null);
+      const [blocked, setBlocked] = useState(false);
+
+      const scenarios = [
+        { name: 'Senza Firewall', hasFirewall: false, hasDMZ: false, desc: 'Rete senza protezione - tutti possono accedere a tutto' },
+        { name: 'Firewall Perimetrale', hasFirewall: true, hasDMZ: false, desc: 'Un firewall protegge la LAN da Internet' },
+        { name: 'DMZ + Dual Firewall', hasFirewall: true, hasDMZ: true, desc: 'Architettura completa con zona demilitarizzata' },
+      ];
+
+      const sendPacket = (malicious) => {
+        setPacket({ x: 30, malicious, stage: 0 });
+        setBlocked(false);
+        let pos = 30;
+        const s = scenarios[scenario];
+        const interval = setInterval(() => {
+          pos += 8;
+          const stage = pos < 120 ? 0 : pos < 220 ? 1 : pos < 320 ? 2 : 3;
+          if (s.hasFirewall && malicious && pos > 110 && pos < 130) {
+            setBlocked(true);
+            setPacket(p => ({ ...p, x: 115, blocked: true }));
+            clearInterval(interval);
+            return;
+          }
+          if (s.hasDMZ && malicious && pos > 280 && pos < 300) {
+            setBlocked(true);
+            setPacket(p => ({ ...p, x: 285, blocked: true }));
+            clearInterval(interval);
+            return;
+          }
+          if (pos > 400) {
+            clearInterval(interval);
+            setPacket(p => ({ ...p, x: 400, arrived: true }));
+            return;
+          }
+          setPacket(p => ({ ...p, x: pos, stage }));
+        }, 50);
+      };
+
+      const s = scenarios[scenario];
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px' }}>🌐 Network Topology Simulator</h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            {scenarios.map((sc, i) => (
+              <button key={i} onClick={() => { setScenario(i); setPacket(null); setBlocked(false); }} style={{ padding: '8px 16px', background: scenario === i ? colors.accent : colors.bgLight, border: 'none', borderRadius: '6px', color: scenario === i ? '#000' : colors.text, cursor: 'pointer', fontSize: '12px', fontWeight: scenario === i ? '600' : '400' }}>{sc.name}</button>
+            ))}
+          </div>
+          <p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '16px' }}>{s.desc}</p>
+          <svg viewBox="0 0 450 120" style={{ width: '100%', background: colors.bg, borderRadius: '8px' }}>
+            <ellipse cx="40" cy="60" rx="30" ry="25" fill={colors.danger + '30'} stroke={colors.danger} strokeWidth="2" />
+            <text x="40" y="58" textAnchor="middle" fill={colors.danger} fontSize="8" fontWeight="bold">Internet</text>
+            <text x="40" y="70" textAnchor="middle" fontSize="12">☁️</text>
+            {s.hasFirewall && (<><rect x="100" y="35" width="35" height="50" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="4" /><text x="117" y="65" textAnchor="middle" fontSize="16">🔥</text></>)}
+            {s.hasDMZ && (<><rect x="160" y="20" width="90" height="80" fill={colors.warn + '15'} stroke={colors.warn} strokeWidth="1" rx="4" /><text x="205" y="40" textAnchor="middle" fill={colors.warn} fontSize="8">DMZ</text><rect x="175" y="50" width="60" height="25" fill={colors.bgCard} stroke={colors.border} rx="3" /><text x="205" y="67" textAnchor="middle" fill={colors.textDim} fontSize="8">🌐 Web</text><rect x="270" y="35" width="35" height="50" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="4" /><text x="287" y="65" textAnchor="middle" fontSize="16">🔥</text></>)}
+            <rect x={s.hasDMZ ? 330 : s.hasFirewall ? 180 : 100} y="25" width="100" height="70" fill={colors.success + '20'} stroke={colors.success} strokeWidth="2" rx="6" />
+            <text x={s.hasDMZ ? 380 : s.hasFirewall ? 230 : 150} y="45" textAnchor="middle" fill={colors.success} fontSize="9" fontWeight="bold">LAN</text>
+            <text x={s.hasDMZ ? 380 : s.hasFirewall ? 230 : 150} y="75" textAnchor="middle" fontSize="20">💻🖥️</text>
+            {packet && (<><circle cx={packet.x} cy="60" r="8" fill={packet.malicious ? colors.danger : colors.success} stroke="#fff" strokeWidth="2" style={{ filter: packet.blocked ? 'none' : 'drop-shadow(0 0 4px ' + (packet.malicious ? colors.danger : colors.success) + ')' }} /><text x={packet.x} y="64" textAnchor="middle" fill="#fff" fontSize="8">{packet.malicious ? '💀' : '📦'}</text>{packet.blocked && <text x={packet.x + 20} y="60" fill={colors.danger} fontSize="16">❌</text>}{packet.arrived && <text x={packet.x - 15} y="60" fill={packet.malicious ? colors.danger : colors.success} fontSize="12">{packet.malicious ? '⚠️' : '✓'}</text>}</>)}
+          </svg>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'center' }}>
+            <button onClick={() => sendPacket(false)} style={{ padding: '10px 20px', background: colors.success, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>📦 Invia Pacchetto Legittimo</button>
+            <button onClick={() => sendPacket(true)} style={{ padding: '10px 20px', background: colors.danger, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>💀 Invia Pacchetto Malevolo</button>
+          </div>
+          {blocked && <div style={{ marginTop: '12px', padding: '10px', background: colors.success + '20', borderRadius: '6px', textAlign: 'center', color: colors.success, fontWeight: '600' }}>🛡️ Attacco bloccato dal firewall!</div>}
+          {packet?.arrived && packet.malicious && !blocked && <div style={{ marginTop: '12px', padding: '10px', background: colors.danger + '20', borderRadius: '6px', textAlign: 'center', color: colors.danger, fontWeight: '600' }}>⚠️ Attacco riuscito! La rete è compromessa!</div>}
+          {packet?.arrived && !packet.malicious && <div style={{ marginTop: '12px', padding: '10px', background: colors.success + '20', borderRadius: '6px', textAlign: 'center', color: colors.success, fontWeight: '600' }}>✓ Pacchetto consegnato con successo!</div>}
+        </div>
+      );
+    };
+
+    // Defense in Depth Visualizer
+    const DefenseInDepthVisualizer = () => {
+      const [attack, setAttack] = useState(null);
+      const [layers, setLayers] = useState([
+        { name: 'Perimeter FW', enabled: true, icon: '🔥', blocks: 0.6 },
+        { name: 'IDS/IPS', enabled: true, icon: '👁️', blocks: 0.5 },
+        { name: 'Host FW', enabled: true, icon: '🛡️', blocks: 0.7 },
+        { name: 'Antivirus', enabled: true, icon: '🦠', blocks: 0.8 },
+      ]);
+
+      const toggleLayer = (i) => {
+        setLayers(l => l.map((layer, idx) => idx === i ? { ...layer, enabled: !layer.enabled } : layer));
+        setAttack(null);
+      };
+
+      const launchAttack = () => {
+        const results = [];
+        let stopped = false;
+        let currentLayer = 0;
+
+        const processLayer = () => {
+          if (currentLayer >= layers.length) {
+            setAttack({ results, stopped: false, complete: true });
+            return;
+          }
+          const layer = layers[currentLayer];
+          if (layer.enabled && Math.random() < layer.blocks) {
+            results.push({ layer: currentLayer, blocked: true });
+            setAttack({ results: [...results], stopped: true, stoppedAt: currentLayer, complete: true });
+            return;
+          }
+          results.push({ layer: currentLayer, blocked: false });
+          setAttack({ results: [...results], stopped: false, complete: false });
+          currentLayer++;
+          setTimeout(processLayer, 600);
+        };
+
+        setAttack({ results: [], stopped: false, complete: false });
+        setTimeout(processLayer, 300);
+      };
+
+      const enabledCount = layers.filter(l => l.enabled).length;
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px' }}>🏰 Defense in Depth Simulator</h3>
+          <p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '16px' }}>Attiva/disattiva i livelli di sicurezza e lancia un attacco per vedere come reagisce la difesa.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <div style={{ padding: '12px', background: colors.danger + '20', borderRadius: '8px', textAlign: 'center', minWidth: '60px' }}>
+              <div style={{ fontSize: '24px' }}>💀</div>
+              <div style={{ fontSize: '10px', color: colors.danger }}>Attacker</div>
+            </div>
+            <div style={{ color: colors.textMuted }}>→</div>
+            {layers.map((layer, i) => (
+              <React.Fragment key={i}>
+                <button onClick={() => toggleLayer(i)} style={{ padding: '12px', background: layer.enabled ? colors.bgLight : colors.bg, border: `2px solid ${layer.enabled ? colors.accent : colors.border}`, borderRadius: '8px', textAlign: 'center', minWidth: '70px', cursor: 'pointer', opacity: layer.enabled ? 1 : 0.5, position: 'relative' }}>
+                  <div style={{ fontSize: '20px' }}>{layer.icon}</div>
+                  <div style={{ fontSize: '9px', color: layer.enabled ? colors.text : colors.textMuted }}>{layer.name}</div>
+                  {attack?.results?.find(r => r.layer === i)?.blocked && <div style={{ position: 'absolute', top: -5, right: -5, background: colors.success, borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>✓</div>}
+                  {attack?.results?.find(r => r.layer === i && !r.blocked) && <div style={{ position: 'absolute', top: -5, right: -5, background: colors.danger, borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>→</div>}
+                </button>
+                {i < layers.length - 1 && <div style={{ color: colors.textMuted }}>→</div>}
+              </React.Fragment>
+            ))}
+            <div style={{ color: colors.textMuted }}>→</div>
+            <div style={{ padding: '12px', background: attack?.complete && !attack?.stopped ? colors.danger + '40' : colors.success + '20', borderRadius: '8px', textAlign: 'center', minWidth: '60px', border: `2px solid ${attack?.complete && !attack?.stopped ? colors.danger : colors.success}` }}>
+              <div style={{ fontSize: '24px' }}>🎯</div>
+              <div style={{ fontSize: '10px', color: attack?.complete && !attack?.stopped ? colors.danger : colors.success }}>Target</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={launchAttack} style={{ padding: '10px 24px', background: colors.danger, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🚀 Lancia Attacco</button>
+            <span style={{ color: colors.textDim, fontSize: '12px' }}>Livelli attivi: {enabledCount}/4</span>
+            <span style={{ color: colors.textMuted, fontSize: '11px' }}>| Click sui livelli per attivarli/disattivarli</span>
+          </div>
+          {attack?.complete && (
+            <div style={{ marginTop: '16px', padding: '12px', background: attack.stopped ? colors.success + '20' : colors.danger + '20', borderRadius: '8px', border: `1px solid ${attack.stopped ? colors.success : colors.danger}` }}>
+              {attack.stopped ? (
+                <div style={{ color: colors.success, fontWeight: '600' }}>🛡️ Attacco fermato da: {layers[attack.stoppedAt].icon} {layers[attack.stoppedAt].name}</div>
+              ) : (
+                <div style={{ color: colors.danger, fontWeight: '600' }}>💥 BREACH! L'attacco ha raggiunto il target! {enabledCount === 0 ? 'Nessuna difesa attiva!' : 'Serve più defense in depth!'}</div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    };
+
     const slides = [
       // Slide 1: Title
       () => (
@@ -261,6 +422,32 @@ iptables -A INPUT -s 10.0.0.5 -j DROP`}</Code>
           <Box type="tip" title="Principio del Minimo Privilegio">
             Ogni servizio, utente o sistema dovrebbe avere accesso solo alle risorse strettamente necessarie per svolgere la propria funzione.
             Applicare sempre "need-to-know" e "need-to-access".
+          </Box>
+        </div>
+      ),
+
+      // Slide 6: Network Topology Simulator
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🎮</span> Simulatore: Topologia di Rete
+          </h2>
+          <NetworkTopologyBuilder />
+          <Box type="info" title="Cosa impari">
+            Osserva come cambia la protezione della rete nelle diverse architetture. Prova a inviare pacchetti malevoli e legittimi per vedere la differenza tra una rete protetta e una non protetta.
+          </Box>
+        </div>
+      ),
+
+      // Slide 7: Defense in Depth Simulator
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🏰</span> Simulatore: Defense in Depth
+          </h2>
+          <DefenseInDepthVisualizer />
+          <Box type="tip" title="Defense in Depth">
+            Più livelli di sicurezza aumentano la probabilità di bloccare un attacco. Prova a disabilitare alcuni livelli e osserva come cambia la sicurezza complessiva.
           </Box>
         </div>
       ),
