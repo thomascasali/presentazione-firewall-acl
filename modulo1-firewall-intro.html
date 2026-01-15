@@ -12,6 +12,16 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
     #root { min-height: 100vh; }
+    @media (max-width: 768px) {
+      .slide-content { padding: 16px !important; }
+      .slide-content h1 { font-size: 28px !important; }
+      .slide-content h2 { font-size: 20px !important; }
+      .slide-content h3 { font-size: 16px !important; }
+      .top-bar { padding: 0 12px !important; }
+      .top-bar span { font-size: 11px !important; }
+      .bottom-bar { gap: 8px !important; }
+      .bottom-bar button, .bottom-bar a { padding: 8px 16px !important; font-size: 12px !important; }
+    }
   </style>
 </head>
 <body>
@@ -68,7 +78,7 @@
           <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>🛡️</span> Cos'è un Firewall?
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div>
               <Glow>
                 <p style={{ color: colors.textDim, lineHeight: '1.7', fontSize: '15px' }}>
@@ -106,7 +116,7 @@
           <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>📍</span> Posizionamento del Firewall
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div>
               <h3 style={{ color: colors.text, marginBottom: '16px' }}>🌐 Firewall Perimetrale</h3>
               <svg viewBox="0 0 400 180" style={{ width: '100%', background: colors.bgCard, borderRadius: '12px', padding: '16px' }}>
@@ -199,7 +209,7 @@
             <line x1="350" y1="140" x2="365" y2="140" stroke={colors.textMuted} strokeWidth="2" />
             <line x1="420" y1="140" x2="435" y2="140" stroke={colors.textMuted} strokeWidth="2" />
           </svg>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
             <Box type="warn" title="DMZ - Zona Demilitarizzata">
               Area "semi-fidata" dove si posizionano i servizi pubblici (web, mail, DNS).
               Accessibile da Internet ma isolata dalla LAN interna.
@@ -218,7 +228,7 @@
           <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>📜</span> Principi Fondamentali
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <Glow color={colors.success}>
               <h3 style={{ color: colors.success, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>🚫</span> Default Deny (Whitelist)

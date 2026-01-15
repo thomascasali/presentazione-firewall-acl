@@ -12,6 +12,13 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
     #root { min-height: 100vh; }
+    @media (max-width: 768px) {
+      .slide-content { padding: 16px !important; }
+      .slide-content h1 { font-size: 28px !important; }
+      .slide-content h2 { font-size: 20px !important; }
+      .slide-content h3 { font-size: 16px !important; }
+      svg { max-width: 100%; height: auto; }
+    }
   </style>
 </head>
 <body>
@@ -82,7 +89,7 @@
       () => (
         <div style={{ padding: '30px' }}>
           <h2 style={{ color: colors.accent, marginBottom: '24px' }}>📊 Firewall e Modello OSI</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '30px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
             <div>
               <h4 style={{ color: colors.textDim, marginBottom: '12px', fontSize: '12px', textTransform: 'uppercase' }}>Livelli OSI</h4>
               <OSILayer layer="7" name="Application" color={colors.purple} active={true} />
@@ -96,7 +103,7 @@
             <div>
               <Glow>
                 <h3 style={{ color: colors.accent, marginBottom: '14px' }}>Dove operano i firewall?</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                   <div style={{ background: colors.bgLight, padding: '14px', borderRadius: '8px' }}>
                     <div style={{ color: colors.warn, fontWeight: '600', marginBottom: '6px' }}>Packet Filter</div>
                     <div style={{ color: colors.textDim, fontSize: '13px' }}>Layer 3-4: IP, TCP/UDP headers</div>
@@ -129,7 +136,7 @@
           <h2 style={{ color: colors.warn, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>1️⃣</span> Packet Filter Firewall
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div>
               <Glow color={colors.warn}>
                 <h3 style={{ color: colors.warn, marginBottom: '12px' }}>Caratteristiche</h3>
@@ -177,7 +184,7 @@
           <h2 style={{ color: colors.cyan, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>2️⃣</span> Stateful Inspection Firewall
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div>
               <Glow color={colors.cyan}>
                 <h3 style={{ color: colors.cyan, marginBottom: '12px' }}>Come Funziona</h3>
@@ -229,7 +236,7 @@
           <h2 style={{ color: colors.purple, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>3️⃣</span> Application Level Firewall
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div>
               <Glow color={colors.purple}>
                 <h3 style={{ color: colors.purple, marginBottom: '12px' }}>Caratteristiche</h3>
@@ -293,7 +300,7 @@
             <text x="430" y="90" textAnchor="middle" fill={colors.success} fontSize="9">Conn. 2</text>
             <text x="300" y="185" textAnchor="middle" fill={colors.textMuted} fontSize="10">Il proxy termina e rigenera due connessioni separate</text>
           </svg>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             <Box type="success" title="Vantaggi">
               <ul style={{ margin: 0, paddingLeft: '16px' }}>
                 <li>Isola completamente client e server</li>
@@ -326,7 +333,7 @@
               Combina <strong style={{ color: colors.text }}>TUTTE</strong> le funzionalità dei firewall precedenti
               in un unico dispositivo, aggiungendo threat intelligence e machine learning.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
               {[
                 ['🔥', 'Packet Filter', 'L3-L4 filtering'],
                 ['📊', 'Stateful', 'Connection tracking'],
