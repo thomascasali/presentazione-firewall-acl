@@ -31,6 +31,180 @@
     const Table = ({ headers, rows }) => (<div style={{ overflowX: 'auto', margin: '16px 0' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}><thead><tr>{headers.map((h, i) => <th key={i} style={{ background: colors.bgLight, color: colors.accent, padding: '10px 12px', textAlign: 'left', borderBottom: `2px solid ${colors.accent}40` }}>{h}</th>)}</tr></thead><tbody>{rows.map((row, ri) => <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}`, color: ci === 0 ? colors.text : colors.textDim, background: ri % 2 ? colors.bgLight + '40' : 'transparent' }}>{cell}</td>)}</tr>)}</tbody></table></div>);
     const Glow = ({ children, color = colors.accent }) => (<div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}><div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div></div>);
 
+    // iptables Rule Builder
+    const IptablesRuleBuilder = () => {
+      const [table, setTable] = useState('filter');
+      const [chain, setChain] = useState('INPUT');
+      const [protocol, setProtocol] = useState('tcp');
+      const [srcIP, setSrcIP] = useState('any');
+      const [dstPort, setDstPort] = useState('80');
+      const [target, setTarget] = useState('ACCEPT');
+
+      const tables = ['filter', 'nat', 'mangle'];
+      const chains = { filter: ['INPUT', 'OUTPUT', 'FORWARD'], nat: ['PREROUTING', 'POSTROUTING', 'OUTPUT'], mangle: ['INPUT', 'OUTPUT', 'FORWARD', 'PREROUTING', 'POSTROUTING'] };
+      const protocols = ['tcp', 'udp', 'icmp'];
+      const targets = ['ACCEPT', 'DROP', 'REJECT', 'LOG'];
+
+      const buildCommand = () => {
+        let cmd = 'iptables';
+        if (table !== 'filter') cmd += ` -t ${table}`;
+        cmd += ` -A ${chain}`;
+        cmd += ` -p ${protocol}`;
+        if (srcIP !== 'any') cmd += ` -s ${srcIP}`;
+        if (protocol !== 'icmp' && dstPort) cmd += ` --dport ${dstPort}`;
+        cmd += ` -j ${target}`;
+        return cmd;
+      };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px' }}>🔧 iptables Rule Builder</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+            <div><label style={{ display: 'block', color: colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>TABLE</label><select value={table} onChange={e => { setTable(e.target.value); setChain(chains[e.target.value][0]); }} style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text }}>{tables.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+            <div><label style={{ display: 'block', color: colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>CHAIN</label><select value={chain} onChange={e => setChain(e.target.value)} style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text }}>{chains[table].map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+            <div><label style={{ display: 'block', color: colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>PROTOCOL</label><select value={protocol} onChange={e => setProtocol(e.target.value)} style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text }}>{protocols.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+            <div><label style={{ display: 'block', color: colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>SOURCE IP</label><input value={srcIP} onChange={e => setSrcIP(e.target.value)} placeholder="any" style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace', fontSize: '12px' }} /></div>
+            <div><label style={{ display: 'block', color: colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>DEST PORT</label><input value={dstPort} onChange={e => setDstPort(e.target.value)} placeholder="80" style={{ width: '100%', padding: '8px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace', fontSize: '12px' }} /></div>
+            <div><label style={{ display: 'block', color: colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>TARGET</label><select value={target} onChange={e => setTarget(e.target.value)} style={{ width: '100%', padding: '8px', background: target === 'ACCEPT' ? colors.success + '30' : target === 'DROP' ? colors.danger + '30' : colors.bgLight, border: `1px solid ${target === 'ACCEPT' ? colors.success : target === 'DROP' ? colors.danger : colors.border}`, borderRadius: '6px', color: colors.text }}>{targets.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+          </div>
+          <div style={{ background: colors.bg, borderRadius: '8px', padding: '16px', fontFamily: 'monospace', fontSize: '13px' }}>
+            <div style={{ color: colors.textMuted, fontSize: '10px', marginBottom: '6px' }}>COMANDO GENERATO:</div>
+            <code style={{ color: colors.success }}>{buildCommand()}</code>
+          </div>
+        </div>
+      );
+    };
+
+    // Packet Flow Visualizer
+    const PacketFlowVisualizer = () => {
+      const [packet, setPacket] = useState(null);
+      const [step, setStep] = useState(0);
+      const [packetType, setPacketType] = useState('input');
+
+      const flows = {
+        input: [
+          { name: 'NETWORK IN', color: colors.info, desc: 'Pacchetto arriva dall\'esterno' },
+          { name: 'PREROUTING', color: colors.warn, desc: 'Table nat: DNAT possibile' },
+          { name: 'ROUTING', color: colors.textMuted, desc: 'Decisione: locale o forward?' },
+          { name: 'INPUT', color: colors.success, desc: 'Table filter: filtraggio' },
+          { name: 'LOCAL APP', color: colors.purple, desc: 'Applicazione locale riceve' },
+        ],
+        forward: [
+          { name: 'NETWORK IN', color: colors.info, desc: 'Pacchetto da altra rete' },
+          { name: 'PREROUTING', color: colors.warn, desc: 'Table nat: DNAT' },
+          { name: 'ROUTING', color: colors.textMuted, desc: 'Decisione: forward!' },
+          { name: 'FORWARD', color: colors.cyan, desc: 'Table filter: filtraggio' },
+          { name: 'POSTROUTING', color: colors.warn, desc: 'Table nat: SNAT/MASQ' },
+          { name: 'NETWORK OUT', color: colors.danger, desc: 'Pacchetto esce verso altra rete' },
+        ],
+        output: [
+          { name: 'LOCAL APP', color: colors.purple, desc: 'App genera pacchetto' },
+          { name: 'OUTPUT', color: colors.success, desc: 'Table filter: filtraggio' },
+          { name: 'ROUTING', color: colors.textMuted, desc: 'Decisione routing' },
+          { name: 'POSTROUTING', color: colors.warn, desc: 'Table nat: SNAT' },
+          { name: 'NETWORK OUT', color: colors.danger, desc: 'Pacchetto esce' },
+        ],
+      };
+
+      const startAnimation = (type) => {
+        setPacketType(type);
+        setPacket({ active: true });
+        setStep(0);
+        let s = 0;
+        const flow = flows[type];
+        const interval = setInterval(() => {
+          s++;
+          if (s >= flow.length) { clearInterval(interval); return; }
+          setStep(s);
+        }, 800);
+      };
+
+      const flow = flows[packetType];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px' }}>🔀 Packet Flow Visualizer</h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <button onClick={() => startAnimation('input')} style={{ padding: '8px 16px', background: colors.success, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '11px' }}>📥 INPUT (verso host)</button>
+            <button onClick={() => startAnimation('forward')} style={{ padding: '8px 16px', background: colors.cyan, border: 'none', borderRadius: '6px', color: '#000', cursor: 'pointer', fontSize: '11px' }}>↔️ FORWARD (routing)</button>
+            <button onClick={() => startAnimation('output')} style={{ padding: '8px 16px', background: colors.purple, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '11px' }}>📤 OUTPUT (da host)</button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', padding: '10px 0' }}>
+            {flow.map((f, i) => (
+              <React.Fragment key={i}>
+                <div style={{ minWidth: '90px', padding: '12px 8px', background: i <= step && packet ? f.color + '30' : colors.bgLight, border: `2px solid ${i <= step && packet ? f.color : colors.border}`, borderRadius: '8px', textAlign: 'center', transition: 'all 0.3s' }}>
+                  <div style={{ color: i <= step && packet ? f.color : colors.textMuted, fontWeight: '600', fontSize: '10px' }}>{f.name}</div>
+                  {i === step && packet && <div style={{ marginTop: '4px', fontSize: '16px' }}>📦</div>}
+                </div>
+                {i < flow.length - 1 && <div style={{ color: i < step && packet ? colors.success : colors.border, fontSize: '16px' }}>→</div>}
+              </React.Fragment>
+            ))}
+          </div>
+          {packet && <div style={{ marginTop: '12px', padding: '10px', background: flow[step].color + '15', borderRadius: '6px', fontSize: '12px', color: flow[step].color }}><strong>{flow[step].name}:</strong> {flow[step].desc}</div>}
+        </div>
+      );
+    };
+
+    // NAT Simulator
+    const NATSimulator = () => {
+      const [natType, setNatType] = useState('snat');
+      const [packet, setPacket] = useState(null);
+
+      const simulate = () => {
+        if (natType === 'snat') {
+          setPacket({
+            before: { src: '192.168.1.100:45678', dst: '8.8.8.8:443' },
+            after: { src: '203.0.113.1:45678', dst: '8.8.8.8:443' },
+            desc: 'SNAT/Masquerade: IP privato tradotto in IP pubblico'
+          });
+        } else if (natType === 'dnat') {
+          setPacket({
+            before: { src: '100.0.0.50:12345', dst: '203.0.113.1:80' },
+            after: { src: '100.0.0.50:12345', dst: '192.168.1.10:80' },
+            desc: 'DNAT/Port Forward: Traffico diretto al server interno'
+          });
+        } else {
+          setPacket({
+            before: { src: '192.168.1.100:45678', dst: '8.8.8.8:443' },
+            after: { src: '203.0.113.1:54321', dst: '8.8.8.8:443' },
+            desc: 'PAT: IP e porta tradotti (molti host, un IP pubblico)'
+          });
+        }
+      };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.warn, marginBottom: '16px' }}>🔄 NAT Simulator</h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            {[['snat', 'SNAT/Masquerade', colors.success], ['dnat', 'DNAT/Port Forward', colors.info], ['pat', 'PAT (overload)', colors.purple]].map(([type, label, color]) => (
+              <button key={type} onClick={() => { setNatType(type); setPacket(null); }} style={{ padding: '8px 14px', background: natType === type ? color : colors.bgLight, border: 'none', borderRadius: '6px', color: natType === type ? '#fff' : colors.text, cursor: 'pointer', fontSize: '11px' }}>{label}</button>
+            ))}
+          </div>
+          <button onClick={simulate} style={{ width: '100%', padding: '12px', background: colors.warn, border: 'none', borderRadius: '8px', color: '#000', fontWeight: '600', cursor: 'pointer', marginBottom: '16px' }}>▶️ Simula Traduzione</button>
+          {packet && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '12px', alignItems: 'center' }}>
+              <div style={{ background: colors.bgLight, borderRadius: '8px', padding: '12px' }}>
+                <div style={{ color: colors.textMuted, fontSize: '10px', marginBottom: '6px' }}>PRIMA (Originale)</div>
+                <div style={{ fontFamily: 'monospace', fontSize: '11px' }}>
+                  <div style={{ color: colors.success }}>Src: {packet.before.src}</div>
+                  <div style={{ color: colors.info }}>Dst: {packet.before.dst}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: '24px', color: colors.warn }}>→</div>
+              <div style={{ background: colors.warn + '20', borderRadius: '8px', padding: '12px', border: `1px solid ${colors.warn}` }}>
+                <div style={{ color: colors.warn, fontSize: '10px', marginBottom: '6px' }}>DOPO (Tradotto)</div>
+                <div style={{ fontFamily: 'monospace', fontSize: '11px' }}>
+                  <div style={{ color: colors.success }}>Src: {packet.after.src}</div>
+                  <div style={{ color: colors.info }}>Dst: {packet.after.dst}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          {packet && <div style={{ marginTop: '12px', padding: '10px', background: colors.info + '15', borderRadius: '6px', fontSize: '12px', color: colors.textDim }}>{packet.desc}</div>}
+        </div>
+      );
+    };
+
     const slides = [
       () => (<div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}><div style={{ fontSize: '48px', marginBottom: '20px' }}>🐧</div><div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 4</div><h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Firewall Linux</h1><p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '500px', lineHeight: '1.6' }}>iptables, nftables e UFW: architettura, sintassi e configurazione pratica</p></div>),
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🏗️ Architettura iptables</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}><Glow><h3 style={{ color: colors.accent, marginBottom: '12px' }}>TABLES → CHAINS → RULES</h3><p style={{ color: colors.textDim, lineHeight: '1.6' }}>iptables organizza le regole in una gerarchia a 3 livelli. Ogni <strong style={{color: colors.text}}>table</strong> contiene <strong style={{color: colors.text}}>chains</strong>, e ogni chain contiene <strong style={{color: colors.text}}>rules</strong>.</p></Glow><Table headers={['Table', 'Scopo', 'Chains']} rows={[['filter', 'Filtraggio pacchetti', 'INPUT, FORWARD, OUTPUT'],['nat', 'NAT / Port forwarding', 'PREROUTING, POSTROUTING, OUTPUT'],['mangle', 'Modifica header', 'Tutte'],['raw', 'Bypass conntrack', 'PREROUTING, OUTPUT'],]} /></div><Box type="info" title="Default">Se non specifichi -t table, iptables usa automaticamente la table filter.</Box></div>),
@@ -212,6 +386,15 @@ sudo ufw delete allow http
 
 # Reset completo
 sudo ufw reset`}</Code></div><Box type="tip" title="Best Practice">UFW è perfetto per configurazioni semplici. Per regole complesse o NAT avanzato, usa direttamente iptables/nftables.</Box></div>),
+
+      // Slide: iptables Rule Builder
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔧 Simulatore: iptables Rule Builder</h2><IptablesRuleBuilder /><Box type="info" title="Impara facendo">Seleziona i parametri e osserva come cambia il comando iptables generato. Prova diverse combinazioni di table, chain e target!</Box></div>),
+
+      // Slide: Packet Flow Visualizer
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔀 Simulatore: Packet Flow</h2><PacketFlowVisualizer /><Box type="tip" title="Chain Visualization">Osserva il percorso dei pacchetti attraverso le diverse chain. INPUT per traffico locale, FORWARD per routing, OUTPUT per traffico generato.</Box></div>),
+
+      // Slide: NAT Simulator
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.warn, marginBottom: '24px' }}>🔄 Simulatore: NAT</h2><NATSimulator /><Box type="info" title="Network Address Translation">SNAT cambia l'IP sorgente (uscita), DNAT cambia l'IP destinazione (entrata), PAT traduce anche le porte per permettere a più host di condividere un IP.</Box></div>),
     ];
 
     function App() {

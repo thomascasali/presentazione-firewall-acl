@@ -197,6 +197,146 @@
       );
     };
 
+    // Wildcard Calculator
+    const WildcardCalculator = () => {
+      const [input, setInput] = useState('255.255.255.0');
+      const [mode, setMode] = useState('subnet'); // subnet or wildcard
+
+      const subnetToWildcard = (subnet) => {
+        return subnet.split('.').map(o => 255 - parseInt(o)).join('.');
+      };
+
+      const wildcardToSubnet = (wildcard) => {
+        return wildcard.split('.').map(o => 255 - parseInt(o)).join('.');
+      };
+
+      const getCIDR = (subnet) => {
+        const binary = subnet.split('.').map(o => parseInt(o).toString(2).padStart(8, '0')).join('');
+        return binary.split('1').length - 1;
+      };
+
+      const result = mode === 'subnet' ? subnetToWildcard(input) : wildcardToSubnet(input);
+      const cidr = mode === 'subnet' ? getCIDR(input) : getCIDR(wildcardToSubnet(input));
+
+      const presets = [
+        { label: '/8', subnet: '255.0.0.0', wildcard: '0.255.255.255' },
+        { label: '/16', subnet: '255.255.0.0', wildcard: '0.0.255.255' },
+        { label: '/24', subnet: '255.255.255.0', wildcard: '0.0.0.255' },
+        { label: '/28', subnet: '255.255.255.240', wildcard: '0.0.0.15' },
+        { label: '/30', subnet: '255.255.255.252', wildcard: '0.0.0.3' },
+        { label: '/32', subnet: '255.255.255.255', wildcard: '0.0.0.0' },
+      ];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.cyan, marginBottom: '16px' }}>🔄 Wildcard Calculator</h3>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <button onClick={() => setMode('subnet')} style={{ padding: '8px 16px', background: mode === 'subnet' ? colors.info : colors.bgLight, border: 'none', borderRadius: '6px', color: mode === 'subnet' ? '#000' : colors.text, cursor: 'pointer', fontSize: '12px' }}>Subnet → Wildcard</button>
+            <button onClick={() => setMode('wildcard')} style={{ padding: '8px 16px', background: mode === 'wildcard' ? colors.purple : colors.bgLight, border: 'none', borderRadius: '6px', color: mode === 'wildcard' ? '#000' : colors.text, cursor: 'pointer', fontSize: '12px' }}>Wildcard → Subnet</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '6px' }}>{mode === 'subnet' ? 'SUBNET MASK' : 'WILDCARD MASK'}</label>
+              <input value={input} onChange={e => setInput(e.target.value)} style={{ width: '100%', padding: '12px', background: colors.bgLight, border: `2px solid ${mode === 'subnet' ? colors.info : colors.purple}`, borderRadius: '8px', color: colors.text, fontFamily: 'monospace', fontSize: '14px' }} />
+            </div>
+            <div style={{ fontSize: '24px', color: colors.accent }}>→</div>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '6px' }}>{mode === 'subnet' ? 'WILDCARD MASK' : 'SUBNET MASK'}</label>
+              <div style={{ padding: '12px', background: mode === 'subnet' ? colors.purple + '30' : colors.info + '30', border: `2px solid ${mode === 'subnet' ? colors.purple : colors.info}`, borderRadius: '8px', fontFamily: 'monospace', fontSize: '14px', color: colors.text }}>{result}</div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', padding: '10px', background: colors.success + '20', borderRadius: '8px', marginBottom: '16px' }}>
+            <span style={{ color: colors.textDim }}>CIDR: </span>
+            <span style={{ color: colors.success, fontWeight: 'bold', fontSize: '18px' }}>/{cidr}</span>
+            <span style={{ color: colors.textDim, marginLeft: '16px' }}>Hosts: </span>
+            <span style={{ color: colors.success, fontWeight: 'bold' }}>{Math.pow(2, 32 - cidr).toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {presets.map(p => (
+              <button key={p.label} onClick={() => setInput(mode === 'subnet' ? p.subnet : p.wildcard)} style={{ padding: '6px 12px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '4px', color: colors.text, cursor: 'pointer', fontSize: '11px' }}>{p.label}</button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ACL Order Tester
+    const ACLOrderTester = () => {
+      const [rules, setRules] = useState([
+        { action: 'deny', ip: '192.168.1.100', mask: '0.0.0.0' },
+        { action: 'permit', ip: '192.168.1.0', mask: '0.0.0.255' },
+      ]);
+      const [testIP, setTestIP] = useState('192.168.1.100');
+      const [result, setResult] = useState(null);
+
+      const matchIP = (ip, ruleIP, wildcard) => {
+        const ipOctets = ip.split('.').map(Number);
+        const ruleOctets = ruleIP.split('.').map(Number);
+        const maskOctets = wildcard.split('.').map(Number);
+        for (let i = 0; i < 4; i++) {
+          const maskedIP = ipOctets[i] & ~maskOctets[i];
+          const maskedRule = ruleOctets[i] & ~maskOctets[i];
+          if (maskedIP !== maskedRule) return false;
+        }
+        return true;
+      };
+
+      const testPacket = () => {
+        for (let i = 0; i < rules.length; i++) {
+          if (matchIP(testIP, rules[i].ip, rules[i].mask)) {
+            setResult({ match: i, action: rules[i].action });
+            return;
+          }
+        }
+        setResult({ match: -1, action: 'implicit deny' });
+      };
+
+      const swapRules = () => {
+        setRules([...rules].reverse());
+        setResult(null);
+      };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.warn, marginBottom: '16px' }}>⚖️ ACL Order Tester - First Match Wins!</h3>
+          <p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '16px' }}>Osserva come l'ordine delle regole cambia il risultato. Inverti le regole e testa lo stesso IP!</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+            <div>
+              <div style={{ color: colors.textDim, fontSize: '11px', marginBottom: '8px', textTransform: 'uppercase' }}>ACL Rules (in ordine)</div>
+              {rules.map((r, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: result?.match === i ? (r.action === 'permit' ? colors.success + '30' : colors.danger + '30') : colors.bgLight, border: `2px solid ${result?.match === i ? (r.action === 'permit' ? colors.success : colors.danger) : 'transparent'}`, borderRadius: '6px', marginBottom: '6px', fontFamily: 'monospace', fontSize: '11px' }}>
+                  <span style={{ color: colors.textMuted }}>#{i + 1}</span>
+                  <span style={{ padding: '2px 8px', background: r.action === 'permit' ? colors.success + '30' : colors.danger + '30', borderRadius: '4px', color: r.action === 'permit' ? colors.success : colors.danger }}>{r.action}</span>
+                  <span style={{ color: colors.text }}>{r.ip}</span>
+                  <span style={{ color: colors.textMuted }}>{r.mask}</span>
+                  {result?.match === i && <span style={{ marginLeft: 'auto', fontSize: '14px' }}>← MATCH!</span>}
+                </div>
+              ))}
+              <div style={{ padding: '8px', background: colors.bgLight, borderRadius: '6px', fontFamily: 'monospace', fontSize: '10px', color: colors.textMuted, textAlign: 'center' }}>(implicit deny any)</div>
+            </div>
+            <div>
+              <div style={{ color: colors.textDim, fontSize: '11px', marginBottom: '8px', textTransform: 'uppercase' }}>Test Packet</div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', color: colors.textMuted, fontSize: '11px', marginBottom: '4px' }}>Source IP:</label>
+                <input value={testIP} onChange={e => { setTestIP(e.target.value); setResult(null); }} style={{ width: '100%', padding: '10px', background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontFamily: 'monospace' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={testPacket} style={{ flex: 1, padding: '10px', background: colors.info, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>▶️ Test</button>
+                <button onClick={swapRules} style={{ flex: 1, padding: '10px', background: colors.warn, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>🔄 Inverti Regole</button>
+              </div>
+              {result && (
+                <div style={{ marginTop: '12px', padding: '12px', background: result.action === 'permit' ? colors.success + '20' : colors.danger + '20', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px' }}>{result.action === 'permit' ? '✅' : '❌'}</div>
+                  <div style={{ color: result.action === 'permit' ? colors.success : colors.danger, fontWeight: 'bold' }}>{result.action.toUpperCase()}</div>
+                  <div style={{ color: colors.textMuted, fontSize: '11px' }}>{result.match >= 0 ? `Rule #${result.match + 1}` : 'Nessun match esplicito'}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const slides = [
       // Slide 1: Title
       () => (<div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}><div style={{ fontSize: '48px', marginBottom: '20px' }}>📋</div><div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 3</div><h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Access Control List</h1><p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '500px', lineHeight: '1.6' }}>ACL Cisco: Standard, Extended, Wildcard Mask e simulatore interattivo</p></div>),
@@ -317,7 +457,13 @@ ip access-list extended WEB-FILTER
       // Slide 11: Simulatore
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🧪 Simulatore ACL Interattivo</h2><ACLSimulator /></div>),
 
-      // Slide 12: Best Practices
+      // Slide 12: Wildcard Calculator
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔄 Calcolatore Wildcard Mask</h2><WildcardCalculator /><Box type="tip" title="Trucco rapido">Wildcard = 255.255.255.255 - Subnet Mask. Esempio: /24 = 255.255.255.0 → Wildcard = 0.0.0.255</Box></div>),
+
+      // Slide 13: ACL Order Tester
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>⚖️ Tester Ordine Regole ACL</h2><ACLOrderTester /><Box type="warn" title="First Match Wins">L'ordine delle regole è FONDAMENTALE! La prima regola che matcha viene applicata. Prova a invertire le regole e osserva come cambia il risultato.</Box></div>),
+
+      // Slide 14: Best Practices
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>✅ Best Practices ACL</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>{[['1️⃣', 'Ordine delle regole', 'Metti le regole più specifiche PRIMA di quelle generiche.', colors.info],['2️⃣', 'Posizionamento', 'Standard ACL vicino alla dest, Extended vicino alla source.', colors.purple],['3️⃣', 'Documenta', 'Usa remark per commentare le ACL. Facilita la manutenzione.', colors.success],['4️⃣', 'Test prima di applicare', 'Usa "show access-lists" per verificare. Testa in lab.', colors.warn],['5️⃣', 'Logging', 'Aggiungi "log" alle regole deny per troubleshooting.', colors.cyan],['6️⃣', 'Evita "any any"', 'Sii specifico. "permit ip any any" vanifica l\'ACL.', colors.danger],].map(([num, title, desc, color]) => (<div key={title} style={{ background: colors.bgCard, border: `1px solid ${color}40`, borderRadius: '10px', padding: '16px' }}><div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}><span style={{ fontSize: '20px' }}>{num}</span><span style={{ color: color, fontWeight: '600' }}>{title}</span></div><p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.5' }}>{desc}</p></div>))}</div></div>),
     ];
 

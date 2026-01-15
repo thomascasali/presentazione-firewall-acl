@@ -248,7 +248,356 @@
       // Slide 2: Packet Simulator
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🔥 Simulatore Packet Filter</h2><PacketSimulator /></div>),
 
-      // Slide 3: Quiz
+      // Slide 3: Scenario Challenge
+      () => {
+        const ScenarioChallenge = () => {
+          const [currentScenario, setCurrentScenario] = useState(0);
+          const [selectedRules, setSelectedRules] = useState([]);
+          const [submitted, setSubmitted] = useState(false);
+          const [score, setScore] = useState(0);
+          const [showHint, setShowHint] = useState(false);
+
+          const scenarios = [
+            {
+              title: 'Web Server Pubblico',
+              description: 'Configura un firewall per un web server che deve servire HTTP e HTTPS da qualsiasi IP, ma bloccare tutto il resto.',
+              icon: '🌐',
+              rules: [
+                { id: 1, text: 'iptables -A INPUT -p tcp --dport 80 -j ACCEPT', correct: true },
+                { id: 2, text: 'iptables -A INPUT -p tcp --dport 443 -j ACCEPT', correct: true },
+                { id: 3, text: 'iptables -A INPUT -p tcp --dport 22 -j ACCEPT', correct: false },
+                { id: 4, text: 'iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT', correct: true },
+                { id: 5, text: 'iptables -P INPUT DROP', correct: true },
+                { id: 6, text: 'iptables -A INPUT -p udp --dport 53 -j ACCEPT', correct: false },
+              ],
+              hint: 'Un web server necessita solo di HTTP (80) e HTTPS (443). Non dimenticare la policy di default!',
+              correctCount: 4
+            },
+            {
+              title: 'Rete Aziendale Sicura',
+              description: 'Configura ACL Cisco per permettere solo al reparto IT (10.10.10.0/24) di accedere via SSH ai server (192.168.1.0/24).',
+              icon: '🏢',
+              rules: [
+                { id: 1, text: 'access-list 100 permit tcp 10.10.10.0 0.0.0.255 192.168.1.0 0.0.0.255 eq 22', correct: true },
+                { id: 2, text: 'access-list 100 permit tcp any 192.168.1.0 0.0.0.255 eq 22', correct: false },
+                { id: 3, text: 'access-list 100 deny tcp any 192.168.1.0 0.0.0.255 eq 22', correct: true },
+                { id: 4, text: 'access-list 100 permit ip any any', correct: true },
+                { id: 5, text: 'access-list 100 permit tcp 10.10.10.0 0.0.0.255 any eq 22', correct: false },
+                { id: 6, text: 'access-list 100 deny ip any any', correct: false },
+              ],
+              hint: 'Prima permetti IT, poi nega tutti gli altri SSH, infine permetti il resto del traffico.',
+              correctCount: 3
+            },
+            {
+              title: 'NAT per Rete Domestica',
+              description: 'Configura iptables per fare NAT (masquerade) del traffico dalla rete interna 192.168.1.0/24 verso Internet (eth0).',
+              icon: '🏠',
+              rules: [
+                { id: 1, text: 'iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -o eth0 -j MASQUERADE', correct: true },
+                { id: 2, text: 'iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT', correct: true },
+                { id: 3, text: 'iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT', correct: true },
+                { id: 4, text: 'iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to 192.168.1.10', correct: false },
+                { id: 5, text: 'echo 1 > /proc/sys/net/ipv4/ip_forward', correct: true },
+                { id: 6, text: 'iptables -A INPUT -j DROP', correct: false },
+              ],
+              hint: 'Il NAT richiede: abilitare forwarding, regola MASQUERADE in POSTROUTING, e permettere FORWARD.',
+              correctCount: 4
+            },
+            {
+              title: 'Windows Firewall - Server RDP',
+              description: 'Configura Windows Firewall per permettere RDP (3389) solo dalla rete aziendale 10.0.0.0/8, profilo Domain.',
+              icon: '🪟',
+              rules: [
+                { id: 1, text: 'New-NetFirewallRule -DisplayName "RDP Internal" -Direction Inbound -Protocol TCP -LocalPort 3389 -RemoteAddress 10.0.0.0/8 -Action Allow -Profile Domain', correct: true },
+                { id: 2, text: 'New-NetFirewallRule -DisplayName "RDP Any" -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow', correct: false },
+                { id: 3, text: 'New-NetFirewallRule -DisplayName "Block RDP Public" -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Block -Profile Public', correct: true },
+                { id: 4, text: 'Set-NetFirewallProfile -Profile Public -DefaultInboundAction Block', correct: true },
+                { id: 5, text: 'New-NetFirewallRule -DisplayName "RDP" -Direction Outbound -Protocol TCP -LocalPort 3389 -Action Allow', correct: false },
+                { id: 6, text: 'Disable-NetFirewallRule -DisplayName "Remote Desktop"', correct: false },
+              ],
+              hint: 'Permetti RDP solo dalla rete interna e blocca esplicitamente su profilo Public per sicurezza.',
+              correctCount: 3
+            },
+          ];
+
+          const scenario = scenarios[currentScenario];
+
+          const toggleRule = (ruleId) => {
+            if (submitted) return;
+            setSelectedRules(prev =>
+              prev.includes(ruleId)
+                ? prev.filter(id => id !== ruleId)
+                : [...prev, ruleId]
+            );
+          };
+
+          const handleSubmit = () => {
+            const correctRules = scenario.rules.filter(r => r.correct).map(r => r.id);
+            const isCorrect = correctRules.every(id => selectedRules.includes(id)) &&
+                             selectedRules.every(id => correctRules.includes(id));
+
+            if (isCorrect) {
+              setScore(s => s + 1);
+            }
+            setSubmitted(true);
+          };
+
+          const nextScenario = () => {
+            if (currentScenario < scenarios.length - 1) {
+              setCurrentScenario(c => c + 1);
+              setSelectedRules([]);
+              setSubmitted(false);
+              setShowHint(false);
+            }
+          };
+
+          const restart = () => {
+            setCurrentScenario(0);
+            setSelectedRules([]);
+            setSubmitted(false);
+            setScore(0);
+            setShowHint(false);
+          };
+
+          const allCompleted = currentScenario === scenarios.length - 1 && submitted;
+
+          return (
+            <div style={{ display: 'grid', gap: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '32px' }}>{scenario.icon}</span>
+                  <div>
+                    <div style={{ color: colors.accent, fontWeight: 'bold', fontSize: '18px' }}>{scenario.title}</div>
+                    <div style={{ color: colors.textMuted, fontSize: '12px' }}>Scenario {currentScenario + 1}/{scenarios.length}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ background: colors.bgLight, padding: '8px 16px', borderRadius: '8px' }}>
+                    <span style={{ color: colors.textMuted, fontSize: '11px' }}>Score: </span>
+                    <span style={{ color: colors.accent, fontWeight: 'bold' }}>{score}/{scenarios.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {scenarios.map((_, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          width: '24px',
+                          height: '6px',
+                          borderRadius: '3px',
+                          background: idx < currentScenario ? colors.success : idx === currentScenario ? colors.accent : colors.bgLight
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}>
+                <div style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '16px' }}>{scenario.description}</div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <span style={{ color: colors.textMuted, fontSize: '12px' }}>
+                    Seleziona {scenario.correctCount} regole corrette:
+                  </span>
+                  {!submitted && (
+                    <button
+                      onClick={() => setShowHint(!showHint)}
+                      style={{
+                        padding: '4px 10px',
+                        background: colors.bgLight,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: '6px',
+                        color: colors.warn,
+                        cursor: 'pointer',
+                        fontSize: '11px'
+                      }}
+                    >
+                      💡 {showHint ? 'Nascondi' : 'Mostra'} Suggerimento
+                    </button>
+                  )}
+                </div>
+
+                {showHint && !submitted && (
+                  <div style={{ background: colors.warn + '15', border: `1px solid ${colors.warn}40`, borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                    <span style={{ color: colors.warn, fontSize: '12px' }}>{scenario.hint}</span>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  {scenario.rules.map(rule => {
+                    const isSelected = selectedRules.includes(rule.id);
+                    let borderColor = colors.border;
+                    let bgColor = colors.bgLight;
+
+                    if (submitted) {
+                      if (rule.correct && isSelected) {
+                        borderColor = colors.success;
+                        bgColor = colors.success + '20';
+                      } else if (rule.correct && !isSelected) {
+                        borderColor = colors.warn;
+                        bgColor = colors.warn + '20';
+                      } else if (!rule.correct && isSelected) {
+                        borderColor = colors.danger;
+                        bgColor = colors.danger + '20';
+                      }
+                    } else if (isSelected) {
+                      borderColor = colors.accent;
+                      bgColor = colors.accent + '20';
+                    }
+
+                    return (
+                      <button
+                        key={rule.id}
+                        onClick={() => toggleRule(rule.id)}
+                        disabled={submitted}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '14px 16px',
+                          background: bgColor,
+                          border: `2px solid ${borderColor}`,
+                          borderRadius: '8px',
+                          cursor: submitted ? 'default' : 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '4px',
+                          border: `2px solid ${borderColor}`,
+                          background: isSelected ? borderColor : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          {isSelected && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
+                        </div>
+                        <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: colors.text, wordBreak: 'break-all' }}>
+                          {rule.text}
+                        </code>
+                        {submitted && (
+                          <span style={{ marginLeft: 'auto', fontSize: '16px', flexShrink: 0 }}>
+                            {rule.correct ? (isSelected ? '✅' : '⚠️') : (isSelected ? '❌' : '')}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {submitted && (
+                <div style={{
+                  background: selectedRules.length === scenario.correctCount &&
+                             scenario.rules.filter(r => r.correct).every(r => selectedRules.includes(r.id))
+                    ? colors.success + '15'
+                    : colors.danger + '15',
+                  border: `1px solid ${selectedRules.length === scenario.correctCount &&
+                                       scenario.rules.filter(r => r.correct).every(r => selectedRules.includes(r.id))
+                    ? colors.success
+                    : colors.danger}40`,
+                  borderRadius: '12px',
+                  padding: '16px',
+                  textAlign: 'center'
+                }}>
+                  {selectedRules.length === scenario.correctCount &&
+                   scenario.rules.filter(r => r.correct).every(r => selectedRules.includes(r.id)) ? (
+                    <>
+                      <span style={{ fontSize: '28px' }}>🎉</span>
+                      <p style={{ color: colors.success, fontWeight: 'bold', margin: '8px 0' }}>Perfetto!</p>
+                      <p style={{ color: colors.textDim, fontSize: '13px' }}>Hai selezionato tutte le regole corrette.</p>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '28px' }}>🔄</span>
+                      <p style={{ color: colors.danger, fontWeight: 'bold', margin: '8px 0' }}>Non del tutto corretto</p>
+                      <p style={{ color: colors.textDim, fontSize: '13px' }}>
+                        Le regole evidenziate in giallo erano necessarie ma non selezionate.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                {!submitted ? (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={selectedRules.length === 0}
+                    style={{
+                      padding: '14px 32px',
+                      background: selectedRules.length === 0 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`,
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: selectedRules.length === 0 ? colors.textMuted : '#000',
+                      fontWeight: '600',
+                      cursor: selectedRules.length === 0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    ✓ Verifica Risposta
+                  </button>
+                ) : allCompleted ? (
+                  <button
+                    onClick={restart}
+                    style={{
+                      padding: '14px 32px',
+                      background: `linear-gradient(135deg, ${colors.purple}, #9333ea)`,
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🔄 Ricomincia Challenge
+                  </button>
+                ) : (
+                  <button
+                    onClick={nextScenario}
+                    style={{
+                      padding: '14px 32px',
+                      background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`,
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#000',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Prossimo Scenario →
+                  </button>
+                )}
+              </div>
+
+              {allCompleted && (
+                <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>{score >= 3 ? '🏆' : score >= 2 ? '👍' : '📚'}</div>
+                  <h3 style={{ color: score >= 3 ? colors.success : score >= 2 ? colors.warn : colors.danger, marginBottom: '8px' }}>
+                    {score >= 3 ? 'Eccellente!' : score >= 2 ? 'Buon lavoro!' : 'Continua a studiare!'}
+                  </h3>
+                  <p style={{ color: colors.textDim, fontSize: '14px' }}>
+                    Hai completato {score} scenari su {scenarios.length} correttamente.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        return (
+          <div style={{ padding: '30px' }}>
+            <h2 style={{ color: colors.accent, marginBottom: '8px' }}>🎯 Scenario Challenge</h2>
+            <p style={{ color: colors.textDim, marginBottom: '24px' }}>Risolvi scenari reali selezionando le regole firewall corrette</p>
+            <ScenarioChallenge />
+          </div>
+        );
+      },
+
+      // Slide 4: Quiz
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📝 Quiz Finale - 15 Domande</h2><Quiz /></div>),
 
       // Slide 4: Riepilogo
