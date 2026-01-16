@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 6 - Quiz IPv6</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+    @media (max-width: 768px) {
+      .slide-content { padding: 16px !important; }
+      .slide-content h1 { font-size: 28px !important; }
+      .slide-content h2 { font-size: 20px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const colors = {
+      bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b',
+      accent: '#14b8a6', accentAlt: '#2dd4bf',
+      text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b',
+      border: '#334155',
+      success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee', teal: '#14b8a6'
+    };
+
+    const Box = ({ type = 'info', title, children }) => {
+      const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' }, teal: { c: colors.teal, i: '🌐' } };
+      const { c, i } = cfg[type] || cfg.info;
+      return (
+        <div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div>
+          <div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div>
+        </div>
+      );
+    };
+
+    // Flashcard Component
+    const Flashcard = ({ front, back, color }) => {
+      const [flipped, setFlipped] = useState(false);
+
+      return (
+        <div
+          onClick={() => setFlipped(!flipped)}
+          style={{
+            perspective: '1000px',
+            cursor: 'pointer',
+            height: '180px'
+          }}
+        >
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            transformStyle: 'preserve-3d',
+            transition: 'transform 0.6s',
+            transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+          }}>
+            {/* Front */}
+            <div style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              backfaceVisibility: 'hidden',
+              background: color + '20',
+              border: `2px solid ${color}`,
+              borderRadius: '12px',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}>
+              <div style={{ color: colors.textMuted, fontSize: '11px', marginBottom: '8px' }}>DOMANDA</div>
+              <div style={{ color: colors.text, fontWeight: '600', fontSize: '14px' }}>{front}</div>
+              <div style={{ color: colors.textMuted, fontSize: '10px', marginTop: '12px' }}>👆 Clicca per girare</div>
+            </div>
+
+            {/* Back */}
+            <div style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              background: color,
+              borderRadius: '12px',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}>
+              <div style={{ color: 'rgba(0,0,0,0.5)', fontSize: '11px', marginBottom: '8px' }}>RISPOSTA</div>
+              <div style={{ color: '#000', fontWeight: '600', fontSize: '14px' }}>{back}</div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Flashcard Deck
+    const FlashcardDeck = () => {
+      const cards = [
+        { front: 'Quanti bit ha un indirizzo IPv6?', back: '128 bit (vs 32 bit di IPv4)', color: colors.info },
+        { front: 'Cosa significa SLAAC?', back: 'Stateless Address Autoconfiguration', color: colors.success },
+        { front: 'Qual è il prefisso degli indirizzi link-local?', back: 'fe80::/10', color: colors.warn },
+        { front: 'Perché non esiste IPv5?', back: 'Il numero 5 era già usato da ST-II (Stream Protocol)', color: colors.purple },
+        { front: 'Cosa sostituisce ARP in IPv6?', back: 'NDP (Neighbor Discovery Protocol)', color: colors.cyan },
+        { front: 'Qual è la dimensione fissa dell\'header IPv6?', back: '40 byte', color: colors.teal },
+        { front: 'Chi può frammentare i pacchetti in IPv6?', back: 'Solo l\'host sorgente (mai i router)', color: colors.danger },
+        { front: 'Cosa indica il campo Next Header?', back: 'Il tipo del prossimo header nella catena', color: colors.info },
+        { front: 'Qual è il prefisso degli indirizzi Global Unicast?', back: '2000::/3', color: colors.success },
+        { front: 'A cosa serve DAD?', back: 'Duplicate Address Detection - verifica unicità indirizzo', color: colors.warn },
+        { front: 'IPv6 ha il broadcast?', back: 'No, usa il multicast (ff00::/8)', color: colors.purple },
+        { front: 'Cosa significa ULA?', back: 'Unique Local Address (fc00::/7) - indirizzi privati', color: colors.cyan },
+      ];
+
+      const [currentIndex, setCurrentIndex] = useState(0);
+
+      const next = () => setCurrentIndex(i => (i + 1) % cards.length);
+      const prev = () => setCurrentIndex(i => (i - 1 + cards.length) % cards.length);
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ color: colors.accent }}>🎴 Flashcard</h3>
+            <span style={{ color: colors.textMuted, fontSize: '13px' }}>{currentIndex + 1} / {cards.length}</span>
+          </div>
+
+          <Flashcard {...cards[currentIndex]} />
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
+            <button onClick={prev} style={{ padding: '10px 24px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer' }}>← Precedente</button>
+            <button onClick={next} style={{ padding: '10px 24px', background: colors.accent, border: 'none', borderRadius: '8px', color: '#000', cursor: 'pointer', fontWeight: '600' }}>Successiva →</button>
+          </div>
+        </div>
+      );
+    };
+
+    // Quiz Component
+    const Quiz = () => {
+      const [currentQ, setCurrentQ] = useState(0);
+      const [selected, setSelected] = useState(null);
+      const [showResult, setShowResult] = useState(false);
+      const [score, setScore] = useState(0);
+      const [answers, setAnswers] = useState([]);
+
+      const questions = [
+        {
+          q: 'Quanti bit compongono un indirizzo IPv6?',
+          options: ['32 bit', '64 bit', '128 bit', '256 bit'],
+          correct: 2,
+          explanation: 'IPv6 utilizza indirizzi a 128 bit, contro i 32 bit di IPv4, permettendo 3.4×10³⁸ indirizzi.'
+        },
+        {
+          q: 'Perché il protocollo IPv5 non è mai stato usato?',
+          options: [
+            'Era troppo complesso',
+            'Il numero 5 era già assegnato a ST-II',
+            'Non era compatibile con IPv4',
+            'Non è mai stato sviluppato'
+          ],
+          correct: 1,
+          explanation: 'Il version number 5 era già usato da ST-II (Stream Protocol), un protocollo sperimentale per streaming.'
+        },
+        {
+          q: 'Qual è il prefisso degli indirizzi link-local IPv6?',
+          options: ['ff00::/8', '2000::/3', 'fe80::/10', 'fc00::/7'],
+          correct: 2,
+          explanation: 'Gli indirizzi link-local iniziano con fe80::/10 e sono validi solo sul link locale.'
+        },
+        {
+          q: 'Quale protocollo sostituisce ARP in IPv6?',
+          options: ['RARP', 'NDP', 'ICMP', 'DHCP'],
+          correct: 1,
+          explanation: 'NDP (Neighbor Discovery Protocol) gestisce la risoluzione degli indirizzi usando Neighbor Solicitation/Advertisement.'
+        },
+        {
+          q: 'Cosa significa SLAAC?',
+          options: [
+            'Secure Local Address Assignment Control',
+            'Stateless Address Autoconfiguration',
+            'Simple Local Area Automatic Configuration',
+            'Standard Link Address Assignment Control'
+          ],
+          correct: 1,
+          explanation: 'SLAAC permette agli host di auto-configurare il proprio indirizzo IPv6 usando i Router Advertisement.'
+        },
+        {
+          q: 'Qual è la dimensione dell\'header IPv6?',
+          options: ['20 byte variabile', '40 byte fisso', '60 byte massimo', '32 byte fisso'],
+          correct: 1,
+          explanation: 'L\'header IPv6 è sempre 40 byte, semplificando il processamento. Le opzioni usano extension headers separati.'
+        },
+        {
+          q: 'Chi può frammentare i pacchetti in IPv6?',
+          options: [
+            'Qualsiasi router',
+            'Solo il router di destinazione',
+            'Solo l\'host sorgente',
+            'Solo i router di backbone'
+          ],
+          correct: 2,
+          explanation: 'In IPv6 solo l\'host sorgente può frammentare. I router inviano "Packet Too Big" se l\'MTU è insufficiente.'
+        },
+        {
+          q: 'Qual è il valore di Next Header per TCP?',
+          options: ['4', '6', '17', '58'],
+          correct: 1,
+          explanation: 'TCP ha Next Header 6, UDP ha 17, ICMPv6 ha 58.'
+        },
+        {
+          q: 'IPv6 supporta il broadcast?',
+          options: [
+            'Sì, come IPv4',
+            'No, usa solo unicast',
+            'No, usa multicast invece',
+            'Solo per reti locali'
+          ],
+          correct: 2,
+          explanation: 'IPv6 non ha broadcast. Usa multicast (ff02::1 per tutti i nodi) che è più efficiente.'
+        },
+        {
+          q: 'Cosa indica il flag M nel Router Advertisement?',
+          options: [
+            'Multicast abilitato',
+            'Usa DHCPv6 per l\'indirizzo',
+            'MTU modificato',
+            'Mobile IPv6 attivo'
+          ],
+          correct: 1,
+          explanation: 'M=1 indica che l\'host deve usare DHCPv6 per ottenere l\'indirizzo (Managed Address Configuration).'
+        },
+        {
+          q: 'Qual è il prefisso degli indirizzi Global Unicast?',
+          options: ['ff00::/8', '2000::/3', 'fe80::/10', 'fc00::/7'],
+          correct: 1,
+          explanation: 'Gli indirizzi Global Unicast iniziano con 2000::/3 (primi 3 bit = 001), sono pubblici e instradabili.'
+        },
+        {
+          q: 'Cosa verifica il DAD (Duplicate Address Detection)?',
+          options: [
+            'La velocità della connessione',
+            'L\'autenticità del router',
+            'Che l\'indirizzo non sia già in uso',
+            'La raggiungibilità del gateway'
+          ],
+          correct: 2,
+          explanation: 'DAD invia una Neighbor Solicitation al proprio indirizzo tentativo per verificare che nessun altro lo stia usando.'
+        },
+        {
+          q: 'L\'header IPv6 include un checksum?',
+          options: [
+            'Sì, come IPv4',
+            'No, è delegato ai livelli superiori',
+            'Solo per i pacchetti frammentati',
+            'Solo per il multicast'
+          ],
+          correct: 1,
+          explanation: 'IPv6 elimina il checksum dell\'header. La verifica è delegata a Layer 2 (Ethernet) e Layer 4 (TCP/UDP).'
+        },
+        {
+          q: 'Qual è l\'indirizzo di loopback IPv6?',
+          options: ['fe80::1', '::1', 'ff02::1', '2001::1'],
+          correct: 1,
+          explanation: '::1 è l\'indirizzo di loopback, equivalente a 127.0.0.1 in IPv4.'
+        },
+        {
+          q: 'Quale meccanismo di transizione usa IPv4 e IPv6 contemporaneamente?',
+          options: ['NAT64', 'Tunneling', 'Dual Stack', '6to4'],
+          correct: 2,
+          explanation: 'Dual Stack significa che l\'host ha sia un indirizzo IPv4 che IPv6 e può usare entrambi i protocolli.'
+        },
+        {
+          q: 'IPsec è obbligatorio in IPv6?',
+          options: [
+            'Sì, sempre attivo',
+            'No, ma è standard/disponibile',
+            'Solo per comunicazioni internazionali',
+            'Solo con DHCPv6'
+          ],
+          correct: 1,
+          explanation: 'IPsec non è obbligatorio ma è standard in IPv6. Era previsto come mandatory, poi reso opzionale per dispositivi IoT.'
+        },
+        {
+          q: 'A cosa serve il Flow Label nell\'header IPv6?',
+          options: [
+            'Identificare frammenti',
+            'Contare gli hop',
+            'Identificare flussi per QoS',
+            'Indicare la versione'
+          ],
+          correct: 2,
+          explanation: 'Flow Label (20 bit) identifica flussi di pacchetti che richiedono trattamento speciale dai router (es. streaming).'
+        },
+        {
+          q: 'Quanti gruppi compongono la notazione IPv6?',
+          options: ['4 gruppi', '6 gruppi', '8 gruppi', '16 gruppi'],
+          correct: 2,
+          explanation: 'Un indirizzo IPv6 ha 8 gruppi di 4 cifre esadecimali (16 bit ciascuno), separati da ":".'
+        },
+        {
+          q: 'Qual è il prefisso ULA (Unique Local Address)?',
+          options: ['ff00::/8', '2000::/3', 'fe80::/10', 'fc00::/7'],
+          correct: 3,
+          explanation: 'ULA usa fc00::/7 (in pratica fd00::/8). Sono simili agli indirizzi privati IPv4, non instradabili su Internet.'
+        },
+        {
+          q: 'Come si abbrevia 2001:0db8:0000:0000:0000:0000:0000:0001?',
+          options: ['2001:db8:0:0:0:0:0:1', '2001:db8::1', '2001:0db8::0001', '2001:db8:::1'],
+          correct: 1,
+          explanation: 'Si rimuovono gli zeri iniziali di ogni gruppo e si sostituisce la sequenza più lunga di zeri con "::".'
+        }
+      ];
+
+      const handleAnswer = (index) => {
+        if (selected !== null) return;
+        setSelected(index);
+        if (index === questions[currentQ].correct) {
+          setScore(s => s + 1);
+        }
+        setAnswers([...answers, { question: currentQ, selected: index, correct: questions[currentQ].correct }]);
+      };
+
+      const nextQuestion = () => {
+        if (currentQ < questions.length - 1) {
+          setCurrentQ(q => q + 1);
+          setSelected(null);
+        } else {
+          setShowResult(true);
+        }
+      };
+
+      const restart = () => {
+        setCurrentQ(0);
+        setSelected(null);
+        setShowResult(false);
+        setScore(0);
+        setAnswers([]);
+      };
+
+      if (showResult) {
+        const percentage = Math.round((score / questions.length) * 100);
+        let grade, emoji, message;
+        if (percentage >= 90) { grade = 'Eccellente'; emoji = '🏆'; message = 'Sei un esperto IPv6!'; }
+        else if (percentage >= 70) { grade = 'Buono'; emoji = '👍'; message = 'Ottima preparazione!'; }
+        else if (percentage >= 50) { grade = 'Sufficiente'; emoji = '📚'; message = 'Rivedi alcuni argomenti.'; }
+        else { grade = 'Da rivedere'; emoji = '🔄'; message = 'Ripassa i moduli e riprova!'; }
+
+        return (
+          <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '30px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}>{emoji}</div>
+            <h2 style={{ color: colors.accent, marginBottom: '8px' }}>Quiz Completato!</h2>
+            <div style={{ fontSize: '48px', fontWeight: '700', color: colors.text, marginBottom: '8px' }}>
+              {score}/{questions.length}
+            </div>
+            <div style={{ color: percentage >= 50 ? colors.success : colors.danger, fontWeight: '600', marginBottom: '8px' }}>
+              {percentage}% - {grade}
+            </div>
+            <p style={{ color: colors.textDim, marginBottom: '24px' }}>{message}</p>
+
+            {/* Results breakdown */}
+            <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+              <h4 style={{ color: colors.textMuted, marginBottom: '12px' }}>Riepilogo risposte:</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))', gap: '8px' }}>
+                {answers.map((a, i) => (
+                  <div key={i} style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    background: a.selected === a.correct ? colors.success + '30' : colors.danger + '30',
+                    border: `2px solid ${a.selected === a.correct ? colors.success : colors.danger}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: a.selected === a.correct ? colors.success : colors.danger,
+                    fontWeight: '600',
+                    fontSize: '12px'
+                  }}>
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={restart} style={{
+              padding: '12px 32px',
+              background: colors.accent,
+              border: 'none',
+              borderRadius: '8px',
+              color: '#000',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '16px'
+            }}>
+              🔄 Ricomincia Quiz
+            </button>
+          </div>
+        );
+      }
+
+      const q = questions[currentQ];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          {/* Progress */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ color: colors.textMuted, fontSize: '13px' }}>Domanda {currentQ + 1} di {questions.length}</span>
+            <span style={{ color: colors.accent, fontWeight: '600' }}>Punteggio: {score}</span>
+          </div>
+          <div style={{ height: '6px', background: colors.bgLight, borderRadius: '3px', marginBottom: '24px' }}>
+            <div style={{
+              height: '100%',
+              width: `${((currentQ + 1) / questions.length) * 100}%`,
+              background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentAlt})`,
+              borderRadius: '3px',
+              transition: 'width 0.3s'
+            }} />
+          </div>
+
+          {/* Question */}
+          <h3 style={{ color: colors.text, marginBottom: '20px', fontSize: '18px', lineHeight: '1.5' }}>
+            {q.q}
+          </h3>
+
+          {/* Options */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+            {q.options.map((option, i) => {
+              let bg = colors.bgLight;
+              let border = colors.border;
+              let color = colors.text;
+
+              if (selected !== null) {
+                if (i === q.correct) {
+                  bg = colors.success + '30';
+                  border = colors.success;
+                  color = colors.success;
+                } else if (i === selected && i !== q.correct) {
+                  bg = colors.danger + '30';
+                  border = colors.danger;
+                  color = colors.danger;
+                }
+              }
+
+              return (
+                <button
+                  key={i}
+                  onClick={() => handleAnswer(i)}
+                  disabled={selected !== null}
+                  style={{
+                    padding: '16px 20px',
+                    background: bg,
+                    border: `2px solid ${border}`,
+                    borderRadius: '10px',
+                    color,
+                    cursor: selected !== null ? 'default' : 'pointer',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                >
+                  <span style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: selected !== null && i === q.correct ? colors.success : selected === i ? colors.danger : colors.bgCard,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Explanation */}
+          {selected !== null && (
+            <div style={{
+              background: selected === q.correct ? colors.success + '20' : colors.danger + '20',
+              border: `1px solid ${selected === q.correct ? colors.success : colors.danger}`,
+              borderRadius: '10px',
+              padding: '16px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ color: selected === q.correct ? colors.success : colors.danger, fontWeight: '600', marginBottom: '6px' }}>
+                {selected === q.correct ? '✅ Corretto!' : '❌ Sbagliato!'}
+              </div>
+              <p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.5' }}>
+                {q.explanation}
+              </p>
+            </div>
+          )}
+
+          {/* Next button */}
+          {selected !== null && (
+            <button onClick={nextQuestion} style={{
+              width: '100%',
+              padding: '14px',
+              background: colors.accent,
+              border: 'none',
+              borderRadius: '10px',
+              color: '#000',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '15px'
+            }}>
+              {currentQ < questions.length - 1 ? 'Prossima Domanda →' : 'Vedi Risultati'}
+            </button>
+          )}
+        </div>
+      );
+    };
+
+    // Key Points Summary
+    const KeyPoints = () => {
+      const points = [
+        { icon: '🔢', title: '128 bit', desc: 'Indirizzi 4x più lunghi di IPv4' },
+        { icon: '📝', title: '8 gruppi hex', desc: 'Separati da : con abbreviazioni' },
+        { icon: '🔗', title: 'fe80::/10', desc: 'Link-local sempre presente' },
+        { icon: '🌍', title: '2000::/3', desc: 'Global Unicast pubblici' },
+        { icon: '📢', title: 'No broadcast', desc: 'Sostituito da multicast' },
+        { icon: '🤖', title: 'SLAAC', desc: 'Autoconfigurazione nativa' },
+        { icon: '📡', title: 'NDP', desc: 'Sostituisce ARP' },
+        { icon: '📦', title: '40 byte', desc: 'Header fisso semplificato' },
+        { icon: '✂️', title: 'No framm. router', desc: 'Solo host sorgente' },
+        { icon: '🔐', title: 'IPsec standard', desc: 'Non obbligatorio ma disponibile' },
+        { icon: '🚫', title: 'Fine NAT', desc: 'End-to-end ripristinato' },
+        { icon: '📚', title: 'Dual Stack', desc: 'IPv4 + IPv6 insieme' },
+      ];
+
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+          {points.map((p, i) => (
+            <div key={i} style={{
+              background: colors.bgLight,
+              borderRadius: '10px',
+              padding: '16px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>{p.icon}</div>
+              <div style={{ color: colors.accent, fontWeight: '700', fontSize: '14px', marginBottom: '4px' }}>{p.title}</div>
+              <div style={{ color: colors.textMuted, fontSize: '11px' }}>{p.desc}</div>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    const slides = [
+      // Slide 1: Title
+      () => (
+        <div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>✅</div>
+          <div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 6</div>
+          <h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Quiz & Riepilogo</h1>
+          <p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '600px', lineHeight: '1.6' }}>Metti alla prova le tue conoscenze su IPv6 con quiz, flashcard e riepilogo finale</p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>❓ 20 domande</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🎴 Flashcard</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>📋 Riepilogo</span>
+          </div>
+        </div>
+      ),
+
+      // Slide 2: Key Points
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📋</span> Punti Chiave da Ricordare
+          </h2>
+          <KeyPoints />
+          <Box type="tip" title="Prima del Quiz">
+            Rivedi questi punti chiave prima di affrontare il quiz. Ogni concetto potrebbe essere oggetto di domanda!
+          </Box>
+        </div>
+      ),
+
+      // Slide 3: Flashcards
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🎴</span> Flashcard di Ripasso
+          </h2>
+          <FlashcardDeck />
+          <Box type="info" title="Come usare le flashcard">
+            Clicca sulla carta per vedere la risposta. Usa le frecce per navigare tra le carte.
+            Prova a rispondere mentalmente prima di girare!
+          </Box>
+        </div>
+      ),
+
+      // Slide 4: Quiz
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>❓</span> Quiz IPv6 - 20 Domande
+          </h2>
+          <Quiz />
+        </div>
+      ),
+
+      // Slide 5: Conclusione
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🎓</span> Conclusione
+          </h2>
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ fontSize: '80px', marginBottom: '20px' }}>🌐</div>
+            <h3 style={{ color: colors.text, fontSize: '28px', marginBottom: '16px', fontFamily: 'Space Grotesk' }}>
+              Hai completato il corso IPv6!
+            </h3>
+            <p style={{ color: colors.textDim, fontSize: '16px', maxWidth: '600px', margin: '0 auto 32px', lineHeight: '1.7' }}>
+              Ora conosci la storia, l'indirizzamento, la configurazione, la struttura dell'header,
+              la sicurezza e i meccanismi di transizione di IPv6.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+            <div style={{ background: colors.bgLight, borderRadius: '12px', padding: '20px' }}>
+              <h4 style={{ color: colors.info, marginBottom: '12px' }}>📚 Cosa hai imparato</h4>
+              <ul style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '2', fontSize: '13px' }}>
+                <li>Perché IPv5 non esiste</li>
+                <li>Formato e tipi di indirizzi</li>
+                <li>SLAAC e NDP</li>
+                <li>Struttura dell'header</li>
+                <li>Sicurezza e transizione</li>
+              </ul>
+            </div>
+            <div style={{ background: colors.bgLight, borderRadius: '12px', padding: '20px' }}>
+              <h4 style={{ color: colors.success, marginBottom: '12px' }}>🚀 Prossimi passi</h4>
+              <ul style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '2', fontSize: '13px' }}>
+                <li>Verifica IPv6 sul tuo sistema</li>
+                <li>Configura una rete IPv6 di test</li>
+                <li>Esplora dual-stack in pratica</li>
+                <li>Approfondisci ICMPv6</li>
+                <li>Studia Mobile IPv6</li>
+              </ul>
+            </div>
+          </div>
+
+          <Box type="teal" title="Ricorda">
+            <strong>IPv6 non è una patch di IPv4: è una riprogettazione completa del livello rete.</strong>
+            È il ritorno al modello originale di Internet, finalmente scalabile per i prossimi 100 anni.
+          </Box>
+        </div>
+      ),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+
+      useEffect(() => {
+        const handler = e => {
+          if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+          if (e.key === 'Escape') window.location.href = 'index.html';
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+      }, []);
+
+      return (
+        <div style={{ minHeight: '100vh', background: colors.bg }}>
+          <div className="top-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a>
+              <span style={{ color: colors.border }}>|</span>
+              <span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 6</span>
+              <span style={{ color: colors.textDim }}>Quiz & Riepilogo</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span>
+              <div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}>
+                <div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentAlt})`, borderRadius: '2px', transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
+            <div className="slide-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+              {slides[current]()}
+            </div>
+          </div>
+          <div className="bottom-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>
+            <button onClick={prev} disabled={current === 0} style={{ padding: '10px 24px', background: current === 0 ? colors.bgLight : colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: current === 0 ? colors.textMuted : colors.text, cursor: current === 0 ? 'not-allowed' : 'pointer', fontSize: '14px' }}>← Indietro</button>
+            <button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>
+            {current === total - 1 && (
+              <a href="index.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.success}, #16a34a)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>🏠 Torna all'Indice</a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

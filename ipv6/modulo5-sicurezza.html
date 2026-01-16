@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 5 - Sicurezza e Transizione IPv6</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+    @media (max-width: 768px) {
+      .slide-content { padding: 16px !important; }
+      .slide-content h1 { font-size: 28px !important; }
+      .slide-content h2 { font-size: 20px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const colors = {
+      bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b',
+      accent: '#f87171', accentAlt: '#fca5a5',
+      text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b',
+      border: '#334155',
+      success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee', teal: '#14b8a6'
+    };
+
+    const Code = ({ children, title }) => (
+      <div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>
+        {title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}
+        <pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', lineHeight: '1.5', color: colors.text, overflowX: 'auto' }}>{children}</pre>
+      </div>
+    );
+
+    const Box = ({ type = 'info', title, children }) => {
+      const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' }, teal: { c: colors.teal, i: '🌐' } };
+      const { c, i } = cfg[type] || cfg.info;
+      return (
+        <div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div>
+          <div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div>
+        </div>
+      );
+    };
+
+    const Glow = ({ children, color = colors.accent }) => (
+      <div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}>
+        <div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div>
+      </div>
+    );
+
+    // NAT vs IPv6 Simulator
+    const NATvsIPv6Simulator = () => {
+      const [mode, setMode] = useState('nat');
+      const [packet, setPacket] = useState(null);
+
+      const sendPacket = (direction) => {
+        setPacket({ direction, step: 0 });
+        let step = 0;
+        const interval = setInterval(() => {
+          step++;
+          if (step > 4) {
+            clearInterval(interval);
+            setPacket(p => ({ ...p, complete: true }));
+            return;
+          }
+          setPacket(p => ({ ...p, step }));
+        }, 600);
+      };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🔄 NAT (IPv4) vs End-to-End (IPv6)
+          </h3>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <button
+              onClick={() => { setMode('nat'); setPacket(null); }}
+              style={{
+                padding: '10px 20px',
+                background: mode === 'nat' ? colors.warn : colors.bgLight,
+                border: 'none',
+                borderRadius: '8px',
+                color: mode === 'nat' ? '#000' : colors.text,
+                cursor: 'pointer',
+                fontWeight: mode === 'nat' ? '600' : '400'
+              }}
+            >
+              🔀 IPv4 + NAT
+            </button>
+            <button
+              onClick={() => { setMode('ipv6'); setPacket(null); }}
+              style={{
+                padding: '10px 20px',
+                background: mode === 'ipv6' ? colors.success : colors.bgLight,
+                border: 'none',
+                borderRadius: '8px',
+                color: mode === 'ipv6' ? '#000' : colors.text,
+                cursor: 'pointer',
+                fontWeight: mode === 'ipv6' ? '600' : '400'
+              }}
+            >
+              🌐 IPv6 Nativo
+            </button>
+          </div>
+
+          <div style={{ background: colors.bgLight, borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+            <svg viewBox="0 0 500 140" style={{ width: '100%' }}>
+              {/* Internet Cloud */}
+              <ellipse cx="250" cy="30" rx="60" ry="25" fill={colors.info + '30'} stroke={colors.info} strokeWidth="2" />
+              <text x="250" y="35" textAnchor="middle" fill={colors.info} fontSize="10">Internet</text>
+
+              {/* External Server */}
+              <rect x="400" y="80" width="80" height="50" rx="8" fill={colors.bgCard} stroke={colors.purple} strokeWidth="2" />
+              <text x="440" y="100" textAnchor="middle" fill={colors.purple} fontSize="9">Server</text>
+              <text x="440" y="115" textAnchor="middle" fill={colors.textMuted} fontSize="8">
+                {mode === 'nat' ? '203.0.113.5' : '2001:db8::5'}
+              </text>
+
+              {/* NAT Router or IPv6 Router */}
+              {mode === 'nat' ? (
+                <>
+                  <rect x="180" y="80" width="80" height="50" rx="8" fill={colors.bgCard} stroke={colors.warn} strokeWidth="2" />
+                  <text x="220" y="100" textAnchor="middle" fill={colors.warn} fontSize="9">NAT Router</text>
+                  <text x="220" y="115" textAnchor="middle" fill={colors.textMuted} fontSize="7">198.51.100.1</text>
+                </>
+              ) : (
+                <>
+                  <rect x="180" y="80" width="80" height="50" rx="8" fill={colors.bgCard} stroke={colors.success} strokeWidth="2" />
+                  <text x="220" y="100" textAnchor="middle" fill={colors.success} fontSize="9">Router</text>
+                  <text x="220" y="115" textAnchor="middle" fill={colors.textMuted} fontSize="7">Forward only</text>
+                </>
+              )}
+
+              {/* Internal Host */}
+              <rect x="20" y="80" width="80" height="50" rx="8" fill={colors.bgCard} stroke={colors.cyan} strokeWidth="2" />
+              <text x="60" y="100" textAnchor="middle" fill={colors.cyan} fontSize="9">Host</text>
+              <text x="60" y="115" textAnchor="middle" fill={colors.textMuted} fontSize="7">
+                {mode === 'nat' ? '192.168.1.10' : '2001:db8::10'}
+              </text>
+
+              {/* Connection lines */}
+              <line x1="100" y1="105" x2="180" y2="105" stroke={colors.border} strokeWidth="2" />
+              <line x1="260" y1="105" x2="400" y2="105" stroke={colors.border} strokeWidth="2" />
+              <line x1="220" y1="80" x2="220" y2="55" stroke={colors.border} strokeWidth="2" />
+              <line x1="220" y1="55" x2="250" y2="55" stroke={colors.border} strokeWidth="2" />
+
+              {/* Packet animation */}
+              {packet && !packet.complete && (
+                <circle
+                  cx={packet.direction === 'out'
+                    ? 60 + packet.step * 95
+                    : 440 - packet.step * 95}
+                  cy="105"
+                  r="8"
+                  fill={colors.accent}
+                />
+              )}
+
+              {/* NAT translation indicator */}
+              {mode === 'nat' && packet && packet.step >= 2 && (
+                <text x="220" y="75" textAnchor="middle" fill={colors.warn} fontSize="8">
+                  {packet.direction === 'out' ? '192.168→198.51' : '198.51→192.168'}
+                </text>
+              )}
+            </svg>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
+            <button
+              onClick={() => sendPacket('out')}
+              style={{
+                padding: '10px 20px',
+                background: colors.info,
+                border: 'none',
+                borderRadius: '8px',
+                color: '#000',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              📤 Invia verso Server
+            </button>
+            <button
+              onClick={() => sendPacket('in')}
+              style={{
+                padding: '10px 20px',
+                background: colors.purple,
+                border: 'none',
+                borderRadius: '8px',
+                color: '#000',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              📥 Ricevi da Server
+            </button>
+          </div>
+
+          <div style={{
+            background: mode === 'nat' ? colors.warn + '20' : colors.success + '20',
+            border: `1px solid ${mode === 'nat' ? colors.warn : colors.success}`,
+            borderRadius: '8px',
+            padding: '16px'
+          }}>
+            {mode === 'nat' ? (
+              <div>
+                <div style={{ color: colors.warn, fontWeight: '600', marginBottom: '8px' }}>⚠️ Problemi con NAT:</div>
+                <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '20px', lineHeight: '1.8' }}>
+                  <li>Il server vede solo l'IP del NAT, non dell'host</li>
+                  <li>Connessioni in ingresso richiedono port forwarding</li>
+                  <li>Problemi con VoIP, gaming, P2P, IoT</li>
+                  <li>Rompe il modello end-to-end di Internet</li>
+                </ul>
+              </div>
+            ) : (
+              <div>
+                <div style={{ color: colors.success, fontWeight: '600', marginBottom: '8px' }}>✅ Vantaggi IPv6:</div>
+                <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '20px', lineHeight: '1.8' }}>
+                  <li>Ogni dispositivo ha un IP pubblico globale</li>
+                  <li>Connessione diretta end-to-end</li>
+                  <li>Nessun port forwarding necessario</li>
+                  <li>La sicurezza è gestita dal firewall, non dal NAT</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // Transition Methods Visualizer
+    const TransitionMethodsViz = () => {
+      const [selected, setSelected] = useState('dual');
+
+      const methods = {
+        dual: {
+          name: 'Dual Stack',
+          icon: '📚',
+          color: colors.success,
+          desc: 'Host e router supportano sia IPv4 che IPv6 contemporaneamente',
+          pros: ['Compatibilità totale', 'Migrazione graduale', 'No traduzione'],
+          cons: ['Doppia configurazione', 'Doppia gestione', 'Serve ancora IPv4'],
+          diagram: (
+            <svg viewBox="0 0 300 100" style={{ width: '100%' }}>
+              <rect x="20" y="20" width="120" height="60" rx="8" fill={colors.bgCard} stroke={colors.info} strokeWidth="2" />
+              <text x="80" y="45" textAnchor="middle" fill={colors.info} fontSize="10">IPv4 Stack</text>
+              <text x="80" y="60" textAnchor="middle" fill={colors.textMuted} fontSize="8">192.168.1.1</text>
+              <rect x="160" y="20" width="120" height="60" rx="8" fill={colors.bgCard} stroke={colors.success} strokeWidth="2" />
+              <text x="220" y="45" textAnchor="middle" fill={colors.success} fontSize="10">IPv6 Stack</text>
+              <text x="220" y="60" textAnchor="middle" fill={colors.textMuted} fontSize="8">2001:db8::1</text>
+            </svg>
+          )
+        },
+        tunnel: {
+          name: 'Tunneling',
+          icon: '🚇',
+          color: colors.purple,
+          desc: 'Pacchetti IPv6 incapsulati in pacchetti IPv4 per attraversare reti legacy',
+          pros: ['Connette isole IPv6', 'Funziona su infrastruttura esistente'],
+          cons: ['Overhead incapsulamento', 'MTU ridotto', 'Complessità'],
+          diagram: (
+            <svg viewBox="0 0 300 100" style={{ width: '100%' }}>
+              <rect x="20" y="30" width="60" height="40" rx="6" fill={colors.success + '30'} stroke={colors.success} />
+              <text x="50" y="55" textAnchor="middle" fill={colors.success} fontSize="9">IPv6</text>
+              <rect x="100" y="20" width="100" height="60" rx="8" fill={colors.info + '20'} stroke={colors.info} strokeWidth="2" strokeDasharray="4" />
+              <rect x="110" y="30" width="80" height="40" rx="6" fill={colors.success + '30'} stroke={colors.success} />
+              <text x="150" y="50" textAnchor="middle" fill={colors.info} fontSize="8">IPv4 tunnel</text>
+              <text x="150" y="62" textAnchor="middle" fill={colors.success} fontSize="8">IPv6 inside</text>
+              <rect x="220" y="30" width="60" height="40" rx="6" fill={colors.success + '30'} stroke={colors.success} />
+              <text x="250" y="55" textAnchor="middle" fill={colors.success} fontSize="9">IPv6</text>
+              <path d="M 80 50 L 100 50" stroke={colors.textMuted} strokeWidth="2" markerEnd="url(#arrow)" />
+              <path d="M 200 50 L 220 50" stroke={colors.textMuted} strokeWidth="2" />
+            </svg>
+          )
+        },
+        nat64: {
+          name: 'NAT64 / DNS64',
+          icon: '🔀',
+          color: colors.warn,
+          desc: 'Traduce tra IPv6 e IPv4 per permettere a client IPv6-only di raggiungere server IPv4',
+          pros: ['Client IPv6-only funzionano', 'Fase finale transizione'],
+          cons: ['Traduzione stateful', 'Problemi con alcuni protocolli', 'Single point of failure'],
+          diagram: (
+            <svg viewBox="0 0 300 100" style={{ width: '100%' }}>
+              <rect x="20" y="30" width="70" height="40" rx="6" fill={colors.success + '30'} stroke={colors.success} />
+              <text x="55" y="50" textAnchor="middle" fill={colors.success} fontSize="9">IPv6 Only</text>
+              <text x="55" y="62" textAnchor="middle" fill={colors.textMuted} fontSize="7">2001:db8::1</text>
+              <rect x="115" y="20" width="70" height="60" rx="8" fill={colors.warn + '30'} stroke={colors.warn} strokeWidth="2" />
+              <text x="150" y="45" textAnchor="middle" fill={colors.warn} fontSize="9">NAT64</text>
+              <text x="150" y="60" textAnchor="middle" fill={colors.textMuted} fontSize="7">Translator</text>
+              <rect x="210" y="30" width="70" height="40" rx="6" fill={colors.info + '30'} stroke={colors.info} />
+              <text x="245" y="50" textAnchor="middle" fill={colors.info} fontSize="9">IPv4 Only</text>
+              <text x="245" y="62" textAnchor="middle" fill={colors.textMuted} fontSize="7">192.0.2.1</text>
+              <path d="M 90 50 L 115 50" stroke={colors.success} strokeWidth="2" />
+              <path d="M 185 50 L 210 50" stroke={colors.info} strokeWidth="2" />
+            </svg>
+          )
+        }
+      };
+
+      const m = methods[selected];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🔄 Meccanismi di Transizione
+          </h3>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            {Object.entries(methods).map(([key, method]) => (
+              <button
+                key={key}
+                onClick={() => setSelected(key)}
+                style={{
+                  padding: '10px 16px',
+                  background: selected === key ? method.color : colors.bgLight,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: selected === key ? '#000' : colors.text,
+                  cursor: 'pointer',
+                  fontWeight: selected === key ? '600' : '400',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {method.icon} {method.name}
+              </button>
+            ))}
+          </div>
+
+          <div style={{
+            background: m.color + '15',
+            border: `1px solid ${m.color}`,
+            borderRadius: '12px',
+            padding: '20px'
+          }}>
+            <div style={{ color: m.color, fontWeight: '700', fontSize: '18px', marginBottom: '8px' }}>
+              {m.icon} {m.name}
+            </div>
+            <p style={{ color: colors.textDim, marginBottom: '16px' }}>{m.desc}</p>
+
+            <div style={{ background: colors.bgLight, borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              {m.diagram}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <div style={{ color: colors.success, fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>✅ Pro</div>
+                <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '16px', lineHeight: '1.8' }}>
+                  {m.pros.map((p, i) => <li key={i}>{p}</li>)}
+                </ul>
+              </div>
+              <div>
+                <div style={{ color: colors.danger, fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>❌ Contro</div>
+                <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '16px', lineHeight: '1.8' }}>
+                  {m.cons.map((c, i) => <li key={i}>{c}</li>)}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const slides = [
+      // Slide 1: Title
+      () => (
+        <div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>🔒</div>
+          <div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 5</div>
+          <h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Sicurezza e Transizione</h1>
+          <p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '600px', lineHeight: '1.6' }}>IPsec nativo, la fine del NAT, e i meccanismi per migrare da IPv4 a IPv6</p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🔐 IPsec</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🚫 Fine NAT</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>📚 Dual Stack</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🚇 Tunneling</span>
+          </div>
+        </div>
+      ),
+
+      // Slide 2: IPsec
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🔐</span> IPsec: Sicurezza Nativa
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <Glow color={colors.success}>
+              <h3 style={{ color: colors.success, marginBottom: '12px' }}>IPv6 + IPsec</h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '12px' }}>
+                In IPv6, IPsec è stato progettato come parte integrante del protocollo.
+                I due extension header dedicati sono:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ background: colors.bgLight, padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ color: colors.info, fontWeight: '600' }}>AH - Authentication Header</div>
+                  <div style={{ color: colors.textDim, fontSize: '12px' }}>
+                    Garantisce integrità e autenticazione dell'origine.
+                    Non cripta il contenuto.
+                  </div>
+                </div>
+                <div style={{ background: colors.bgLight, padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ color: colors.purple, fontWeight: '600' }}>ESP - Encapsulating Security Payload</div>
+                  <div style={{ color: colors.textDim, fontSize: '12px' }}>
+                    Fornisce confidenzialità (cifratura), integrità e autenticazione.
+                    Il più usato in pratica.
+                  </div>
+                </div>
+              </div>
+            </Glow>
+
+            <div>
+              <Box type="warn" title="Importante">
+                IPsec in IPv6 <strong>non è obbligatorio</strong> ma è <strong>standard</strong>.
+                Originariamente era previsto come mandatory, poi è stato reso opzionale per
+                dispositivi con risorse limitate (IoT).
+              </Box>
+              <Box type="danger" title="IPv6 non è più sicuro di default!">
+                Avere IPsec disponibile non significa che sia attivo.
+                <strong> Il firewall è sempre necessario</strong> per proteggere i dispositivi.
+                IPv6 non è magicamente più sicuro di IPv4.
+              </Box>
+              <Code title="Extension Headers IPsec">
+{`Next Header values:
+  51 = AH (Authentication Header)
+  50 = ESP (Encapsulating Security Payload)
+
+# Esempio catena con ESP:
+IPv6 Header (Next: 50)
+  └─→ ESP Header (Next: 6)
+       └─→ TCP Header [encrypted]
+            └─→ Payload [encrypted]`}</Code>
+            </div>
+          </div>
+        </div>
+      ),
+
+      // Slide 3: Fine del NAT
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🚫</span> La Fine del NAT
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <Glow color={colors.danger}>
+              <h3 style={{ color: colors.danger, marginBottom: '12px' }}>❌ Problemi del NAT</h3>
+              <ul style={{ color: colors.textDim, lineHeight: '2', paddingLeft: '20px' }}>
+                <li><strong style={{ color: colors.text }}>Rompe end-to-end:</strong> i dispositivi interni non sono raggiungibili direttamente</li>
+                <li><strong style={{ color: colors.text }}>Port forwarding:</strong> configurazione manuale per ogni servizio</li>
+                <li><strong style={{ color: colors.text }}>Problemi applicativi:</strong> VoIP, gaming, P2P, video conferenze</li>
+                <li><strong style={{ color: colors.text }}>Sicurezza illusoria:</strong> NAT non è un firewall</li>
+                <li><strong style={{ color: colors.text }}>Logging difficile:</strong> molti host condividono un IP</li>
+              </ul>
+            </Glow>
+
+            <Glow color={colors.success}>
+              <h3 style={{ color: colors.success, marginBottom: '12px' }}>✅ IPv6: Ogni Device ha IP Pubblico</h3>
+              <ul style={{ color: colors.textDim, lineHeight: '2', paddingLeft: '20px' }}>
+                <li><strong style={{ color: colors.text }}>End-to-end ripristinato:</strong> connessioni dirette</li>
+                <li><strong style={{ color: colors.text }}>Nessun port forwarding:</strong> tutto raggiungibile</li>
+                <li><strong style={{ color: colors.text }}>Firewall per sicurezza:</strong> controllo esplicito</li>
+                <li><strong style={{ color: colors.text }}>Identificazione precisa:</strong> ogni device tracciabile</li>
+                <li><strong style={{ color: colors.text }}>IoT semplificato:</strong> dispositivi direttamente accessibili</li>
+              </ul>
+            </Glow>
+          </div>
+          <Box type="tip" title="Filosofia di Internet">
+            Internet è stato progettato per la comunicazione <strong>end-to-end</strong>.
+            NAT era una toppa necessaria per la scarsità di IPv4.
+            IPv6 ripristina il design originale.
+          </Box>
+        </div>
+      ),
+
+      // Slide 4: NAT vs IPv6 Simulator
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🎮</span> Simulatore: NAT vs IPv6
+          </h2>
+          <NATvsIPv6Simulator />
+        </div>
+      ),
+
+      // Slide 5: Transition Methods
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🔄</span> Meccanismi di Transizione
+          </h2>
+          <TransitionMethodsViz />
+        </div>
+      ),
+
+      // Slide 6: Dual Stack in Pratica
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📚</span> Dual Stack: La Via Principale
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <div>
+              <Glow color={colors.success}>
+                <h3 style={{ color: colors.success, marginBottom: '16px' }}>Come Funziona</h3>
+                <ol style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '2' }}>
+                  <li>Ogni host ha sia un indirizzo IPv4 che IPv6</li>
+                  <li>DNS restituisce record A (IPv4) e AAAA (IPv6)</li>
+                  <li>L'applicazione sceglie quale usare</li>
+                  <li>Di solito preferisce IPv6 (Happy Eyeballs)</li>
+                  <li>Fallback su IPv4 se IPv6 non funziona</li>
+                </ol>
+              </Glow>
+              <Code title="Esempio DNS">
+{`$ host www.google.com
+www.google.com has address 142.250.180.68
+www.google.com has IPv6 address 2a00:1450:4002:402::2004
+
+$ ping6 www.google.com
+PING www.google.com(2a00:1450:4002:402::2004) 56 data bytes
+64 bytes from 2a00:1450:4002:402::2004: icmp_seq=1 ttl=118`}</Code>
+            </div>
+
+            <div>
+              <h3 style={{ color: colors.text, marginBottom: '16px' }}>🖥️ Verifica sul tuo Sistema</h3>
+              <Code title="Windows">
+{`# Mostra configurazione IPv4 e IPv6
+ipconfig
+
+# Output tipico:
+Ethernet adapter:
+   IPv4 Address. . . : 192.168.1.50
+   IPv6 Address. . . : 2001:db8::50
+   Link-local IPv6 . : fe80::abc:1234`}</Code>
+              <Code title="Linux/macOS">
+{`# Mostra tutti gli indirizzi
+ip addr
+
+# Solo IPv6
+ip -6 addr
+
+# Test connettività IPv6
+ping6 ipv6.google.com`}</Code>
+              <Box type="info" title="Happy Eyeballs (RFC 8305)">
+                I browser moderni provano IPv6 e IPv4 in parallelo, usando il primo che risponde.
+                Questo garantisce la migliore esperienza utente durante la transizione.
+              </Box>
+            </div>
+          </div>
+        </div>
+      ),
+
+      // Slide 7: Riepilogo
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📋</span> Punti Chiave da Ricordare
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {[
+              { icon: '🔐', title: 'IPsec Standard', desc: 'Disponibile nativamente ma non attivo di default. Il firewall è sempre necessario.', color: colors.info },
+              { icon: '🌐', title: 'Fine del NAT', desc: 'Ogni dispositivo ha un IP pubblico. La sicurezza è gestita dal firewall, non dalla "protezione" NAT.', color: colors.success },
+              { icon: '📚', title: 'Dual Stack', desc: 'Metodo principale di transizione: IPv4 e IPv6 coesistono sullo stesso dispositivo.', color: colors.purple },
+              { icon: '🚇', title: 'Tunneling', desc: 'Per connettere isole IPv6 attraverso reti IPv4 legacy.', color: colors.warn },
+              { icon: '🔀', title: 'NAT64/DNS64', desc: 'Per client IPv6-only che devono raggiungere server IPv4.', color: colors.cyan },
+              { icon: '🎯', title: 'Obiettivo', desc: 'IPv6-only è il futuro. La transizione è graduale ma inevitabile.', color: colors.teal }
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: item.color + '15',
+                border: `1px solid ${item.color}40`,
+                borderRadius: '12px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>{item.icon}</div>
+                <div style={{ color: item.color, fontWeight: '700', marginBottom: '8px' }}>{item.title}</div>
+                <p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.5' }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <Box type="teal" title="Consiglio Didattico">
+            IPv6 non è una "nuova versione" di IPv4: è un <strong>ritorno al modello originale</strong> di Internet,
+            finalmente scalabile. Ogni dispositivo può comunicare direttamente con ogni altro dispositivo,
+            come era previsto dal design iniziale.
+          </Box>
+        </div>
+      ),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+
+      useEffect(() => {
+        const handler = e => {
+          if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+          if (e.key === 'Escape') window.location.href = 'index.html';
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+      }, []);
+
+      return (
+        <div style={{ minHeight: '100vh', background: colors.bg }}>
+          <div className="top-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a>
+              <span style={{ color: colors.border }}>|</span>
+              <span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 5</span>
+              <span style={{ color: colors.textDim }}>Sicurezza e Transizione</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span>
+              <div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}>
+                <div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentAlt})`, borderRadius: '2px', transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
+            <div className="slide-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+              {slides[current]()}
+            </div>
+          </div>
+          <div className="bottom-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>
+            <button onClick={prev} disabled={current === 0} style={{ padding: '10px 24px', background: current === 0 ? colors.bgLight : colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: current === 0 ? colors.textMuted : colors.text, cursor: current === 0 ? 'not-allowed' : 'pointer', fontSize: '14px' }}>← Indietro</button>
+            <button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>
+            {current === total - 1 && (
+              <a href="modulo6-quiz.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.teal}, #0d9488)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 6: Quiz →</a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

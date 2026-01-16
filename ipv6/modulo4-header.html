@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 4 - Header IPv6</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+    @media (max-width: 768px) {
+      .slide-content { padding: 16px !important; }
+      .slide-content h1 { font-size: 28px !important; }
+      .slide-content h2 { font-size: 20px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const colors = {
+      bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b',
+      accent: '#a78bfa', accentAlt: '#c4b5fd',
+      text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b',
+      border: '#334155',
+      success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee', teal: '#14b8a6'
+    };
+
+    const Code = ({ children, title }) => (
+      <div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>
+        {title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}
+        <pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', lineHeight: '1.5', color: colors.text, overflowX: 'auto' }}>{children}</pre>
+      </div>
+    );
+
+    const Box = ({ type = 'info', title, children }) => {
+      const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' }, teal: { c: colors.teal, i: '🌐' } };
+      const { c, i } = cfg[type] || cfg.info;
+      return (
+        <div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div>
+          <div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div>
+        </div>
+      );
+    };
+
+    const Glow = ({ children, color = colors.accent }) => (
+      <div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}>
+        <div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div>
+      </div>
+    );
+
+    // Header Visualizer Interattivo
+    const HeaderVisualizer = () => {
+      const [selected, setSelected] = useState('version');
+      const [protocol, setProtocol] = useState('ipv6');
+
+      const ipv4Fields = [
+        { id: 'version', name: 'Version', bits: 4, color: colors.info, desc: 'Versione IP (4)' },
+        { id: 'ihl', name: 'IHL', bits: 4, color: colors.info, desc: 'Header Length (in word da 32 bit)' },
+        { id: 'tos', name: 'ToS', bits: 8, color: colors.warn, desc: 'Type of Service (QoS)' },
+        { id: 'total', name: 'Total Length', bits: 16, color: colors.success, desc: 'Lunghezza totale del pacchetto' },
+        { id: 'id', name: 'Identification', bits: 16, color: colors.purple, desc: 'ID per riassemblaggio frammenti' },
+        { id: 'flags', name: 'Flags', bits: 3, color: colors.danger, desc: 'Flag di frammentazione (DF, MF)' },
+        { id: 'offset', name: 'Fragment Offset', bits: 13, color: colors.danger, desc: 'Offset del frammento' },
+        { id: 'ttl', name: 'TTL', bits: 8, color: colors.cyan, desc: 'Time To Live (hop limit)' },
+        { id: 'proto', name: 'Protocol', bits: 8, color: colors.teal, desc: 'Protocollo superiore (TCP=6, UDP=17)' },
+        { id: 'checksum', name: 'Header Checksum', bits: 16, color: colors.danger, desc: 'Checksum dell\'header' },
+        { id: 'src', name: 'Source Address', bits: 32, color: colors.info, desc: 'Indirizzo IP sorgente' },
+        { id: 'dst', name: 'Destination Address', bits: 32, color: colors.info, desc: 'Indirizzo IP destinazione' },
+        { id: 'options', name: 'Options', bits: 'var', color: colors.textMuted, desc: 'Opzioni (0-40 byte)' }
+      ];
+
+      const ipv6Fields = [
+        { id: 'version', name: 'Version', bits: 4, color: colors.info, desc: 'Versione IP (6)' },
+        { id: 'tc', name: 'Traffic Class', bits: 8, color: colors.warn, desc: 'Priorità e DSCP (simile a ToS)' },
+        { id: 'flow', name: 'Flow Label', bits: 20, color: colors.purple, desc: 'Identificatore di flusso per QoS' },
+        { id: 'length', name: 'Payload Length', bits: 16, color: colors.success, desc: 'Lunghezza del payload (escluso header)' },
+        { id: 'next', name: 'Next Header', bits: 8, color: colors.teal, desc: 'Tipo del prossimo header (TCP=6, UDP=17, etc)' },
+        { id: 'hop', name: 'Hop Limit', bits: 8, color: colors.cyan, desc: 'Come TTL: decrementato ad ogni hop' },
+        { id: 'src', name: 'Source Address', bits: 128, color: colors.info, desc: 'Indirizzo IPv6 sorgente (128 bit)' },
+        { id: 'dst', name: 'Destination Address', bits: 128, color: colors.info, desc: 'Indirizzo IPv6 destinazione (128 bit)' }
+      ];
+
+      const fields = protocol === 'ipv6' ? ipv6Fields : ipv4Fields;
+      const selectedField = fields.find(f => f.id === selected) || fields[0];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ color: colors.accent, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📦 Visualizzatore Header
+            </h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => { setProtocol('ipv4'); setSelected('version'); }}
+                style={{
+                  padding: '8px 16px',
+                  background: protocol === 'ipv4' ? colors.info : colors.bgLight,
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: protocol === 'ipv4' ? '#000' : colors.text,
+                  cursor: 'pointer',
+                  fontWeight: protocol === 'ipv4' ? '600' : '400'
+                }}
+              >
+                IPv4
+              </button>
+              <button
+                onClick={() => { setProtocol('ipv6'); setSelected('version'); }}
+                style={{
+                  padding: '8px 16px',
+                  background: protocol === 'ipv6' ? colors.accent : colors.bgLight,
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: protocol === 'ipv6' ? '#000' : colors.text,
+                  cursor: 'pointer',
+                  fontWeight: protocol === 'ipv6' ? '600' : '400'
+                }}
+              >
+                IPv6
+              </button>
+            </div>
+          </div>
+
+          {/* Header Grid */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '20px' }}>
+            {fields.map((field, i) => (
+              <button
+                key={i}
+                onClick={() => setSelected(field.id)}
+                style={{
+                  padding: '8px 12px',
+                  background: selected === field.id ? field.color : field.color + '30',
+                  border: `2px solid ${selected === field.id ? field.color : 'transparent'}`,
+                  borderRadius: '6px',
+                  color: selected === field.id ? '#000' : colors.text,
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: selected === field.id ? '600' : '400',
+                  flex: field.bits === 128 ? '1 1 100%' : field.bits >= 16 ? '1 1 calc(50% - 2px)' : 'auto'
+                }}
+              >
+                {field.name}
+                <span style={{ marginLeft: '6px', opacity: 0.7 }}>
+                  {field.bits === 'var' ? '0-320b' : `${field.bits}b`}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Selected Field Info */}
+          <div style={{
+            background: selectedField.color + '20',
+            border: `1px solid ${selectedField.color}`,
+            borderRadius: '12px',
+            padding: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <div style={{
+                background: selectedField.color,
+                color: '#000',
+                padding: '4px 12px',
+                borderRadius: '6px',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+                {selectedField.name}
+              </div>
+              <div style={{ color: colors.textMuted, fontFamily: 'JetBrains Mono', fontSize: '12px' }}>
+                {selectedField.bits === 'var' ? '0-320 bit' : `${selectedField.bits} bit`}
+              </div>
+            </div>
+            <p style={{ color: colors.textDim, fontSize: '14px' }}>{selectedField.desc}</p>
+          </div>
+
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
+            <div style={{ background: colors.bgLight, padding: '12px 16px', borderRadius: '8px' }}>
+              <div style={{ color: colors.textMuted, fontSize: '11px' }}>HEADER SIZE</div>
+              <div style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>
+                {protocol === 'ipv6' ? '40 byte (fisso)' : '20-60 byte'}
+              </div>
+            </div>
+            <div style={{ background: colors.bgLight, padding: '12px 16px', borderRadius: '8px' }}>
+              <div style={{ color: colors.textMuted, fontSize: '11px' }}>CAMPI</div>
+              <div style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>
+                {protocol === 'ipv6' ? '8' : '13+'}
+              </div>
+            </div>
+            <div style={{ background: colors.bgLight, padding: '12px 16px', borderRadius: '8px' }}>
+              <div style={{ color: colors.textMuted, fontSize: '11px' }}>CHECKSUM</div>
+              <div style={{ color: protocol === 'ipv6' ? colors.success : colors.warn, fontWeight: '700', fontSize: '18px' }}>
+                {protocol === 'ipv6' ? 'NO ✓' : 'Sì'}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Comparison Table
+    const ComparisonTable = () => {
+      const comparisons = [
+        { aspect: 'Dimensione Header', ipv4: '20-60 byte (variabile)', ipv6: '40 byte (fisso)', winner: 'ipv6' },
+        { aspect: 'Dimensione Indirizzo', ipv4: '32 bit', ipv6: '128 bit', winner: 'ipv6' },
+        { aspect: 'Checksum Header', ipv4: 'Sì (ricalcolato ad ogni hop)', ipv6: 'No (delegato a L2/L4)', winner: 'ipv6' },
+        { aspect: 'Frammentazione', ipv4: 'Router possono frammentare', ipv6: 'Solo sorgente', winner: 'ipv6' },
+        { aspect: 'Broadcast', ipv4: 'Sì', ipv6: 'No (sostituito da multicast)', winner: 'ipv6' },
+        { aspect: 'QoS / Flow', ipv4: 'ToS (8 bit)', ipv6: 'Traffic Class (8) + Flow Label (20)', winner: 'ipv6' },
+        { aspect: 'Opzioni', ipv4: 'Nel header (variabile)', ipv6: 'Extension headers (catena)', winner: 'ipv6' },
+        { aspect: 'IPsec', ipv4: 'Opzionale', ipv6: 'Nativo (standard)', winner: 'ipv6' },
+        { aspect: 'Autoconfigurazione', ipv4: 'Limitata (APIPA)', ipv6: 'SLAAC completo', winner: 'ipv6' },
+      ];
+
+      return (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: `2px solid ${colors.border}`, color: colors.textMuted, fontSize: '12px' }}>ASPETTO</th>
+                <th style={{ padding: '12px', textAlign: 'center', borderBottom: `2px solid ${colors.border}`, color: colors.info, fontSize: '12px' }}>IPv4</th>
+                <th style={{ padding: '12px', textAlign: 'center', borderBottom: `2px solid ${colors.border}`, color: colors.accent, fontSize: '12px' }}>IPv6</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparisons.map((row, i) => (
+                <tr key={i} style={{ background: i % 2 === 0 ? colors.bgLight : 'transparent' }}>
+                  <td style={{ padding: '12px', color: colors.text, fontSize: '13px', fontWeight: '500' }}>{row.aspect}</td>
+                  <td style={{ padding: '12px', textAlign: 'center', color: row.winner === 'ipv4' ? colors.success : colors.textDim, fontSize: '12px' }}>
+                    {row.ipv4}
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center', color: row.winner === 'ipv6' ? colors.success : colors.textDim, fontSize: '12px' }}>
+                    {row.ipv6} {row.winner === 'ipv6' && '✓'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
+    // Extension Headers Visualizer
+    const ExtensionHeadersViz = () => {
+      const [showExtension, setShowExtension] = useState(true);
+
+      const headers = [
+        { name: 'IPv6 Header', next: showExtension ? 43 : 6, color: colors.accent },
+        ...(showExtension ? [
+          { name: 'Routing Header', next: 44, color: colors.info },
+          { name: 'Fragment Header', next: 6, color: colors.warn }
+        ] : []),
+        { name: 'TCP Header', next: null, color: colors.success },
+        { name: 'Payload', next: null, color: colors.bgLight }
+      ];
+
+      const extensionTypes = [
+        { value: 0, name: 'Hop-by-Hop Options', desc: 'Opzioni per ogni router' },
+        { value: 43, name: 'Routing', desc: 'Source routing' },
+        { value: 44, name: 'Fragment', desc: 'Frammentazione' },
+        { value: 50, name: 'ESP', desc: 'Encapsulating Security Payload' },
+        { value: 51, name: 'AH', desc: 'Authentication Header' },
+        { value: 60, name: 'Destination Options', desc: 'Opzioni per destinazione' },
+        { value: 6, name: 'TCP', desc: 'Transmission Control Protocol' },
+        { value: 17, name: 'UDP', desc: 'User Datagram Protocol' },
+        { value: 58, name: 'ICMPv6', desc: 'Internet Control Message Protocol' },
+        { value: 59, name: 'No Next Header', desc: 'Nessun header successivo' },
+      ];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🔗 Extension Headers
+          </h3>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <button
+              onClick={() => setShowExtension(false)}
+              style={{
+                padding: '8px 16px',
+                background: !showExtension ? colors.success : colors.bgLight,
+                border: 'none',
+                borderRadius: '6px',
+                color: !showExtension ? '#000' : colors.text,
+                cursor: 'pointer'
+              }}
+            >
+              Senza Extension
+            </button>
+            <button
+              onClick={() => setShowExtension(true)}
+              style={{
+                padding: '8px 16px',
+                background: showExtension ? colors.info : colors.bgLight,
+                border: 'none',
+                borderRadius: '6px',
+                color: showExtension ? '#000' : colors.text,
+                cursor: 'pointer'
+              }}
+            >
+              Con Extension
+            </button>
+          </div>
+
+          {/* Chain visualization */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+            {headers.map((h, i) => (
+              <React.Fragment key={i}>
+                <div style={{
+                  background: h.color,
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  color: h.color === colors.bgLight ? colors.text : '#000',
+                  fontWeight: '600',
+                  fontSize: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div>{h.name}</div>
+                  {h.next !== null && (
+                    <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>
+                      Next: {h.next}
+                    </div>
+                  )}
+                </div>
+                {i < headers.length - 1 && (
+                  <span style={{ color: colors.textMuted, fontSize: '20px' }}>→</span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* Extension types table */}
+          <div style={{ background: colors.bgLight, borderRadius: '8px', padding: '16px' }}>
+            <div style={{ color: colors.textMuted, fontSize: '11px', marginBottom: '12px', textTransform: 'uppercase' }}>
+              Next Header Values comuni:
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+              {extensionTypes.map((t, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    background: colors.bgCard,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: '11px',
+                    color: colors.accent
+                  }}>
+                    {t.value}
+                  </span>
+                  <span style={{ color: colors.text, fontSize: '12px' }}>{t.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Fragmentation Comparison
+    const FragmentationComparison = () => {
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+          <Glow color={colors.danger}>
+            <h3 style={{ color: colors.danger, marginBottom: '16px' }}>❌ IPv4: Router Frammentano</h3>
+            <svg viewBox="0 0 300 150" style={{ width: '100%', background: colors.bgLight, borderRadius: '8px', marginBottom: '12px' }}>
+              {/* Source */}
+              <rect x="10" y="50" width="60" height="50" rx="6" fill={colors.bgCard} stroke={colors.info} strokeWidth="2" />
+              <text x="40" y="80" textAnchor="middle" fill={colors.text} fontSize="10">Source</text>
+
+              {/* Big packet */}
+              <rect x="80" y="35" width="40" height="20" rx="3" fill={colors.warn} />
+              <text x="100" y="49" textAnchor="middle" fill="#000" fontSize="8">5000B</text>
+              <line x1="70" y1="75" x2="80" y2="45" stroke={colors.textMuted} />
+
+              {/* Router with scissors */}
+              <rect x="140" y="50" width="50" height="50" rx="6" fill={colors.bgCard} stroke={colors.danger} strokeWidth="2" />
+              <text x="165" y="70" textAnchor="middle" fontSize="16">✂️</text>
+              <text x="165" y="90" textAnchor="middle" fill={colors.danger} fontSize="8">Router</text>
+
+              {/* Fragments */}
+              <rect x="200" y="25" width="25" height="15" rx="2" fill={colors.success} />
+              <rect x="200" y="45" width="25" height="15" rx="2" fill={colors.success} />
+              <rect x="200" y="65" width="25" height="15" rx="2" fill={colors.success} />
+              <rect x="200" y="85" width="25" height="15" rx="2" fill={colors.success} />
+              <text x="235" y="60" textAnchor="start" fill={colors.textMuted} fontSize="7">1500B x 4</text>
+
+              {/* Destination */}
+              <rect x="260" y="50" width="35" height="50" rx="6" fill={colors.bgCard} stroke={colors.info} strokeWidth="2" />
+              <text x="278" y="80" textAnchor="middle" fill={colors.text} fontSize="8">Dest</text>
+            </svg>
+            <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '16px', lineHeight: '1.8' }}>
+              <li>Ogni router può frammentare</li>
+              <li>Overhead di processamento</li>
+              <li>Problemi se un frammento si perde</li>
+              <li>Header include campi per frammentazione</li>
+            </ul>
+          </Glow>
+
+          <Glow color={colors.success}>
+            <h3 style={{ color: colors.success, marginBottom: '16px' }}>✅ IPv6: Solo Sorgente</h3>
+            <svg viewBox="0 0 300 150" style={{ width: '100%', background: colors.bgLight, borderRadius: '8px', marginBottom: '12px' }}>
+              {/* Source with PMTUD */}
+              <rect x="10" y="50" width="70" height="50" rx="6" fill={colors.bgCard} stroke={colors.success} strokeWidth="2" />
+              <text x="45" y="70" textAnchor="middle" fontSize="10">📏</text>
+              <text x="45" y="85" textAnchor="middle" fill={colors.success} fontSize="7">PMTUD</text>
+
+              {/* Pre-fragmented packets */}
+              <rect x="90" y="35" width="25" height="15" rx="2" fill={colors.success} />
+              <rect x="90" y="55" width="25" height="15" rx="2" fill={colors.success} />
+              <rect x="90" y="75" width="25" height="15" rx="2" fill={colors.success} />
+
+              {/* Router (just forwards) */}
+              <rect x="140" y="50" width="50" height="50" rx="6" fill={colors.bgCard} stroke={colors.info} strokeWidth="2" />
+              <text x="165" y="70" textAnchor="middle" fontSize="16">→</text>
+              <text x="165" y="90" textAnchor="middle" fill={colors.info} fontSize="8">Forward</text>
+
+              {/* Same packets */}
+              <rect x="200" y="35" width="25" height="15" rx="2" fill={colors.success} />
+              <rect x="200" y="55" width="25" height="15" rx="2" fill={colors.success} />
+              <rect x="200" y="75" width="25" height="15" rx="2" fill={colors.success} />
+
+              {/* Destination */}
+              <rect x="240" y="50" width="50" height="50" rx="6" fill={colors.bgCard} stroke={colors.success} strokeWidth="2" />
+              <text x="265" y="80" textAnchor="middle" fill={colors.text} fontSize="8">Dest</text>
+            </svg>
+            <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '16px', lineHeight: '1.8' }}>
+              <li><strong style={{ color: colors.text }}>PMTUD obbligatorio</strong></li>
+              <li>Router non frammentano mai</li>
+              <li>Se MTU troppo piccolo: ICMPv6 "Packet Too Big"</li>
+              <li>Extension header dedicato (se serve)</li>
+            </ul>
+          </Glow>
+        </div>
+      );
+    };
+
+    const slides = [
+      // Slide 1: Title
+      () => (
+        <div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>📦</div>
+          <div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 4</div>
+          <h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Header IPv6</h1>
+          <p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '600px', lineHeight: '1.6' }}>Struttura dell'header, confronto con IPv4, extension headers e gestione della frammentazione</p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>📐 40 byte fissi</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🔗 Extension</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>✂️ No framm. router</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>❌ No checksum</span>
+          </div>
+        </div>
+      ),
+
+      // Slide 2: Header Semplificato
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>✨</span> Header Semplificato
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <Glow color={colors.info}>
+              <h3 style={{ color: colors.info, marginBottom: '12px' }}>IPv4: 13+ Campi</h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '12px' }}>
+                Header variabile da <strong style={{ color: colors.text }}>20 a 60 byte</strong>.
+                Include campi per frammentazione, checksum, opzioni.
+              </p>
+              <ul style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '1.8', fontSize: '13px' }}>
+                <li>IHL (variable length)</li>
+                <li>Checksum (ricalcolato ad ogni hop)</li>
+                <li>Flags + Fragment Offset</li>
+                <li>Options (0-40 byte)</li>
+              </ul>
+            </Glow>
+
+            <Glow color={colors.accent}>
+              <h3 style={{ color: colors.accent, marginBottom: '12px' }}>IPv6: 8 Campi Fissi</h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '12px' }}>
+                Header fisso di <strong style={{ color: colors.text }}>40 byte</strong>.
+                Più semplice da processare per i router.
+              </p>
+              <ul style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '1.8', fontSize: '13px' }}>
+                <li>Version, Traffic Class, Flow Label</li>
+                <li>Payload Length, Next Header</li>
+                <li>Hop Limit</li>
+                <li>Source + Destination (128 bit ciascuno)</li>
+              </ul>
+            </Glow>
+          </div>
+          <Box type="success" title="Vantaggi">
+            Router più veloci: niente checksum da ricalcolare, niente frammentazione da gestire,
+            header sempre della stessa dimensione → processamento hardware ottimizzato.
+          </Box>
+        </div>
+      ),
+
+      // Slide 3: Header Visualizer
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🔍</span> Esplora gli Header
+          </h2>
+          <HeaderVisualizer />
+        </div>
+      ),
+
+      // Slide 4: Campi in Dettaglio
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📋</span> Campi dell'Header IPv6
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {[
+              { name: 'Version', bits: '4', desc: 'Sempre 6 (0110 in binario)', color: colors.info },
+              { name: 'Traffic Class', bits: '8', desc: '6 bit DSCP + 2 bit ECN per QoS', color: colors.warn },
+              { name: 'Flow Label', bits: '20', desc: 'ID flusso per trattamento speciale dai router', color: colors.purple },
+              { name: 'Payload Length', bits: '16', desc: 'Lunghezza payload in byte (escluso header IPv6)', color: colors.success },
+              { name: 'Next Header', bits: '8', desc: 'Tipo del prossimo header (TCP=6, UDP=17, etc)', color: colors.teal },
+              { name: 'Hop Limit', bits: '8', desc: 'Come TTL: decrementato ad ogni hop, pacchetto scartato a 0', color: colors.cyan },
+            ].map((field, i) => (
+              <div key={i} style={{
+                background: field.color + '15',
+                border: `1px solid ${field.color}40`,
+                borderRadius: '12px',
+                padding: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ color: field.color, fontWeight: '700' }}>{field.name}</span>
+                  <span style={{
+                    background: field.color,
+                    color: '#000',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: '600'
+                  }}>
+                    {field.bits} bit
+                  </span>
+                </div>
+                <p style={{ color: colors.textDim, fontSize: '12px', lineHeight: '1.5' }}>{field.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '20px' }}>
+            <Box type="info" title="Source + Destination Address">
+              I due campi indirizzo occupano 128 bit ciascuno (16 byte), per un totale di 32 byte dei 40 totali dell'header.
+            </Box>
+          </div>
+        </div>
+      ),
+
+      // Slide 5: Cosa è Stato Rimosso
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🗑️</span> Cosa è Stato Rimosso?
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+            {[
+              { name: 'Header Checksum', reason: 'Livello 2 (Ethernet) e Livello 4 (TCP/UDP) già lo fanno', icon: '❌', impact: 'Router più veloci: niente ricalcolo ad ogni hop' },
+              { name: 'IHL', reason: 'Header sempre 40 byte, non serve specificare', icon: '📏', impact: 'Parsing semplificato' },
+              { name: 'Identification', reason: 'Spostato in Fragment Extension Header', icon: '🔢', impact: 'Header base più leggero' },
+              { name: 'Flags', reason: 'DF implicito, MF in Extension Header', icon: '🚩', impact: 'Router non frammentano' },
+              { name: 'Fragment Offset', reason: 'In Extension Header, usato solo se necessario', icon: '✂️', impact: 'Overhead solo quando serve' },
+              { name: 'Options', reason: 'Sostituito da Extension Headers modulari', icon: '⚙️', impact: 'Più flessibile e ordinato' },
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: colors.bgLight,
+                borderRadius: '12px',
+                padding: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                  <span style={{ color: colors.danger, fontWeight: '600', textDecoration: 'line-through' }}>{item.name}</span>
+                </div>
+                <p style={{ color: colors.textDim, fontSize: '12px', marginBottom: '8px' }}>
+                  <strong style={{ color: colors.text }}>Perché:</strong> {item.reason}
+                </p>
+                <p style={{ color: colors.success, fontSize: '11px' }}>
+                  ✓ {item.impact}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+
+      // Slide 6: Extension Headers
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🔗</span> Extension Headers
+          </h2>
+          <ExtensionHeadersViz />
+          <Box type="tip" title="Next Header Chain">
+            Ogni header (IPv6, extension, transport) ha un campo "Next Header" che indica il tipo del successivo.
+            Questo crea una catena che termina con il protocollo di trasporto (TCP, UDP) o con "No Next Header" (59).
+          </Box>
+        </div>
+      ),
+
+      // Slide 7: Frammentazione
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>✂️</span> Frammentazione: IPv4 vs IPv6
+          </h2>
+          <FragmentationComparison />
+          <Box type="info" title="Path MTU Discovery (PMTUD)">
+            L'host sorgente deve scoprire l'MTU minimo lungo il percorso. Se un router ha MTU troppo piccolo,
+            risponde con ICMPv6 "Packet Too Big" indicando l'MTU massimo accettato. L'host adatta i pacchetti di conseguenza.
+          </Box>
+        </div>
+      ),
+
+      // Slide 8: Tabella Confronto
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>⚖️</span> Confronto Completo IPv4 vs IPv6
+          </h2>
+          <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+            <ComparisonTable />
+          </div>
+          <Box type="success" title="Conclusione">
+            L'header IPv6 è stato progettato per essere più efficiente: fisso, senza campi obsoleti,
+            con funzionalità opzionali gestite tramite extension headers modulari.
+            Questo permette ai router di processare i pacchetti più velocemente.
+          </Box>
+        </div>
+      ),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+
+      useEffect(() => {
+        const handler = e => {
+          if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+          if (e.key === 'Escape') window.location.href = 'index.html';
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+      }, []);
+
+      return (
+        <div style={{ minHeight: '100vh', background: colors.bg }}>
+          <div className="top-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a>
+              <span style={{ color: colors.border }}>|</span>
+              <span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 4</span>
+              <span style={{ color: colors.textDim }}>Header IPv6</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span>
+              <div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}>
+                <div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentAlt})`, borderRadius: '2px', transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
+            <div className="slide-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+              {slides[current]()}
+            </div>
+          </div>
+          <div className="bottom-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>
+            <button onClick={prev} disabled={current === 0} style={{ padding: '10px 24px', background: current === 0 ? colors.bgLight : colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: current === 0 ? colors.textMuted : colors.text, cursor: current === 0 ? 'not-allowed' : 'pointer', fontSize: '14px' }}>← Indietro</button>
+            <button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>
+            {current === total - 1 && (
+              <a href="modulo5-sicurezza.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.teal}, #0d9488)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 5: Sicurezza →</a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

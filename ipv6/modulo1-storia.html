@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 1 - Da IPv4 a IPv6</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+    @media (max-width: 768px) {
+      .slide-content { padding: 16px !important; }
+      .slide-content h1 { font-size: 28px !important; }
+      .slide-content h2 { font-size: 20px !important; }
+      .slide-content h3 { font-size: 16px !important; }
+      .top-bar { padding: 0 12px !important; }
+      .top-bar span { font-size: 11px !important; }
+      .bottom-bar { gap: 8px !important; }
+      .bottom-bar button, .bottom-bar a { padding: 8px 16px !important; font-size: 12px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const colors = {
+      bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b',
+      accent: '#f59e0b', accentAlt: '#fbbf24',
+      text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b',
+      border: '#334155',
+      success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee', teal: '#14b8a6'
+    };
+
+    const Code = ({ children, title }) => (
+      <div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>
+        {title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}
+        <pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', lineHeight: '1.5', color: colors.text, overflowX: 'auto' }}>{children}</pre>
+      </div>
+    );
+
+    const Box = ({ type = 'info', title, children }) => {
+      const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' }, teal: { c: colors.teal, i: '🌐' } };
+      const { c, i } = cfg[type] || cfg.info;
+      return (
+        <div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div>
+          <div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div>
+        </div>
+      );
+    };
+
+    const Glow = ({ children, color = colors.accent }) => (
+      <div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}>
+        <div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div>
+      </div>
+    );
+
+    // Timeline Interattiva della Storia IP
+    const IPTimeline = () => {
+      const [selected, setSelected] = useState(null);
+
+      const events = [
+        { year: '1974', title: 'Nasce TCP/IP', desc: 'Vint Cerf e Bob Kahn pubblicano "A Protocol for Packet Network Intercommunication". Nasce l\'architettura che diventerà Internet.', icon: '🎂', color: colors.info },
+        { year: '1981', title: 'IPv4 - RFC 791', desc: 'Pubblicata la specifica ufficiale di IPv4. Indirizzi a 32 bit = 4.3 miliardi di indirizzi. Sembravano infiniti...', icon: '📜', color: colors.success },
+        { year: '1979-1995', title: 'ST / ST-II (IPv5)', desc: 'Stream Protocol, progettato per streaming audio/video in tempo reale. Usa il version number 5, ma non è mai stato un vero "IP".', icon: '🎬', color: colors.purple },
+        { year: '1990', title: 'Allarme Esaurimento', desc: 'IETF inizia a preoccuparsi: la crescita di Internet è esponenziale, gli indirizzi finiranno entro 10 anni.', icon: '⚠️', color: colors.warn },
+        { year: '1993', title: 'CIDR - Soluzione Temporanea', desc: 'Classless Inter-Domain Routing elimina le classi A/B/C. Rallenta l\'esaurimento ma non lo risolve.', icon: '🩹', color: colors.danger },
+        { year: '1994', title: 'NAT - Altra Toppa', desc: 'Network Address Translation permette a più dispositivi di condividere un IP pubblico. Rompe il modello end-to-end.', icon: '🔄', color: colors.warn },
+        { year: '1995', title: 'IPng → IPv6', desc: 'Dopo anni di dibattito, nasce IP Next Generation. Version number 6 per evitare confusione con ST-II.', icon: '🚀', color: colors.teal },
+        { year: '1998', title: 'RFC 2460 - IPv6', desc: 'Pubblicata la specifica ufficiale di IPv6. 128 bit = 340 undecilioni di indirizzi. Questa volta bastano davvero.', icon: '📋', color: colors.success },
+        { year: '2011', title: 'World IPv6 Day', desc: 'Google, Facebook, Yahoo testano IPv6 per 24 ore. Prova generale per il lancio mondiale.', icon: '🌍', color: colors.info },
+        { year: '2012', title: 'World IPv6 Launch', desc: 'IPv6 viene attivato permanentemente dai major provider. L\'era IPv6 è ufficialmente iniziata.', icon: '🎉', color: colors.teal },
+      ];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📅 Timeline Interattiva - Storia del Protocollo IP
+          </h3>
+          <div style={{ position: 'relative', paddingLeft: '20px' }}>
+            {/* Linea verticale */}
+            <div style={{ position: 'absolute', left: '8px', top: '10px', bottom: '10px', width: '2px', background: `linear-gradient(to bottom, ${colors.info}, ${colors.teal})` }} />
+
+            {events.map((event, i) => (
+              <div
+                key={i}
+                onClick={() => setSelected(selected === i ? null : i)}
+                style={{
+                  position: 'relative',
+                  marginBottom: '12px',
+                  cursor: 'pointer',
+                  paddingLeft: '30px',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {/* Dot */}
+                <div style={{
+                  position: 'absolute',
+                  left: '0',
+                  top: '8px',
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: selected === i ? event.color : colors.bgLight,
+                  border: `2px solid ${event.color}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  transition: 'all 0.3s'
+                }}>
+                  {selected === i && event.icon}
+                </div>
+
+                {/* Content */}
+                <div style={{
+                  background: selected === i ? event.color + '20' : colors.bgLight,
+                  border: `1px solid ${selected === i ? event.color : colors.border}`,
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  transition: 'all 0.3s'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{
+                      color: event.color,
+                      fontWeight: '700',
+                      fontFamily: 'JetBrains Mono',
+                      fontSize: '14px'
+                    }}>{event.year}</span>
+                    <span style={{ color: colors.text, fontWeight: '600', fontSize: '14px' }}>{event.title}</span>
+                    <span style={{ fontSize: '16px' }}>{event.icon}</span>
+                  </div>
+                  {selected === i && (
+                    <p style={{
+                      color: colors.textDim,
+                      fontSize: '13px',
+                      marginTop: '8px',
+                      lineHeight: '1.5',
+                      animation: 'fadeIn 0.3s'
+                    }}>
+                      {event.desc}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p style={{ color: colors.textMuted, fontSize: '11px', marginTop: '16px', textAlign: 'center' }}>
+            👆 Clicca su un evento per vedere i dettagli
+          </p>
+        </div>
+      );
+    };
+
+    // Simulatore Esaurimento Indirizzi IPv4
+    const IPv4ExhaustionSimulator = () => {
+      const [year, setYear] = useState(1981);
+      const [running, setRunning] = useState(false);
+
+      const totalAddresses = 4294967296; // 2^32
+      const reservedAddresses = 592708864; // Circa 14% riservati
+      const usableAddresses = totalAddresses - reservedAddresses;
+
+      // Crescita approssimativa degli indirizzi usati per anno
+      const getUsedAddresses = (y) => {
+        if (y < 1981) return 0;
+        if (y < 1990) return Math.floor((y - 1981) * 1000000);
+        if (y < 1995) return Math.floor(9000000 + (y - 1990) * 20000000);
+        if (y < 2000) return Math.floor(109000000 + (y - 1995) * 100000000);
+        if (y < 2005) return Math.floor(609000000 + (y - 2000) * 200000000);
+        if (y < 2010) return Math.floor(1609000000 + (y - 2005) * 250000000);
+        if (y < 2011) return Math.floor(2859000000 + (y - 2010) * 300000000);
+        return Math.min(usableAddresses, 3159000000 + (y - 2011) * 100000000);
+      };
+
+      const used = getUsedAddresses(year);
+      const percentage = Math.min(100, (used / usableAddresses) * 100);
+      const remaining = Math.max(0, usableAddresses - used);
+
+      useEffect(() => {
+        if (running && year < 2025) {
+          const timer = setTimeout(() => setYear(y => y + 1), 200);
+          return () => clearTimeout(timer);
+        } else if (year >= 2025) {
+          setRunning(false);
+        }
+      }, [running, year]);
+
+      const formatNumber = (n) => {
+        if (n >= 1e9) return (n / 1e9).toFixed(2) + ' miliardi';
+        if (n >= 1e6) return (n / 1e6).toFixed(1) + ' milioni';
+        return n.toLocaleString('it-IT');
+      };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📊 Simulatore Esaurimento IPv4
+          </h3>
+
+          {/* Anno corrente */}
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '48px', fontWeight: '700', fontFamily: 'Space Grotesk', color: year >= 2011 ? colors.danger : colors.accent }}>
+              {year}
+            </div>
+            <div style={{ color: colors.textMuted, fontSize: '12px' }}>Anno simulato</div>
+          </div>
+
+          {/* Barra progresso */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ color: colors.textDim, fontSize: '12px' }}>Indirizzi IPv4 allocati</span>
+              <span style={{
+                color: percentage > 90 ? colors.danger : percentage > 70 ? colors.warn : colors.success,
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>{percentage.toFixed(1)}%</span>
+            </div>
+            <div style={{
+              height: '24px',
+              background: colors.bgLight,
+              borderRadius: '12px',
+              overflow: 'hidden',
+              border: `1px solid ${colors.border}`
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${percentage}%`,
+                background: percentage > 90
+                  ? `linear-gradient(90deg, ${colors.warn}, ${colors.danger})`
+                  : percentage > 70
+                  ? `linear-gradient(90deg, ${colors.success}, ${colors.warn})`
+                  : colors.success,
+                borderRadius: '12px',
+                transition: 'width 0.2s, background 0.5s',
+                boxShadow: percentage > 90 ? `0 0 20px ${colors.danger}50` : 'none'
+              }} />
+            </div>
+          </div>
+
+          {/* Statistiche */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ background: colors.bgLight, padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ color: colors.info, fontSize: '13px', fontWeight: '600' }}>{formatNumber(used)}</div>
+              <div style={{ color: colors.textMuted, fontSize: '10px' }}>Allocati</div>
+            </div>
+            <div style={{ background: colors.bgLight, padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ color: remaining > 0 ? colors.success : colors.danger, fontSize: '13px', fontWeight: '600' }}>
+                {remaining > 0 ? formatNumber(remaining) : 'ESAURITI!'}
+              </div>
+              <div style={{ color: colors.textMuted, fontSize: '10px' }}>Disponibili</div>
+            </div>
+            <div style={{ background: colors.bgLight, padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ color: colors.purple, fontSize: '13px', fontWeight: '600' }}>~3.7 miliardi</div>
+              <div style={{ color: colors.textMuted, fontSize: '10px' }}>Totale Usabile</div>
+            </div>
+          </div>
+
+          {/* Controlli */}
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => { setYear(1981); setRunning(false); }}
+              style={{
+                padding: '10px 20px',
+                background: colors.bgLight,
+                border: `1px solid ${colors.border}`,
+                borderRadius: '8px',
+                color: colors.text,
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              ⏮️ Reset
+            </button>
+            <button
+              onClick={() => setRunning(!running)}
+              style={{
+                padding: '10px 24px',
+                background: running ? colors.danger : colors.accent,
+                border: 'none',
+                borderRadius: '8px',
+                color: '#000',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600'
+              }}
+            >
+              {running ? '⏸️ Pausa' : '▶️ Avvia Simulazione'}
+            </button>
+            <button
+              onClick={() => setYear(2011)}
+              style={{
+                padding: '10px 20px',
+                background: colors.danger + '30',
+                border: `1px solid ${colors.danger}`,
+                borderRadius: '8px',
+                color: colors.danger,
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              ⏭️ Vai al 2011
+            </button>
+          </div>
+
+          {/* Messaggio esaurimento */}
+          {year >= 2011 && (
+            <div style={{
+              marginTop: '16px',
+              padding: '12px',
+              background: colors.danger + '20',
+              border: `1px solid ${colors.danger}`,
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <div style={{ color: colors.danger, fontWeight: '600', marginBottom: '4px' }}>
+                🚨 {year >= 2011 ? '3 Febbraio 2011: IANA esaurisce gli indirizzi IPv4!' : ''}
+              </div>
+              <div style={{ color: colors.textDim, fontSize: '12px' }}>
+                I Regional Internet Registries (RIR) hanno esaurito i loro pool tra il 2011 e il 2019
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Confronto IPv4 vs IPv6 Interattivo
+    const AddressSpaceComparison = () => {
+      const [showIPv6, setShowIPv6] = useState(false);
+
+      const ipv4Addresses = 4294967296; // 2^32
+      const ipv6Addresses = 340282366920938463463374607431768211456n; // 2^128
+
+      // Rappresentazione visiva: ogni quadratino = un miliardo di indirizzi per IPv4
+      const ipv4Billions = 4.3;
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🔢 Confronto Spazio Indirizzi
+          </h3>
+
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+            <button
+              onClick={() => setShowIPv6(false)}
+              style={{
+                padding: '10px 24px',
+                background: !showIPv6 ? colors.info : colors.bgLight,
+                border: 'none',
+                borderRadius: '8px',
+                color: !showIPv6 ? '#000' : colors.text,
+                cursor: 'pointer',
+                fontWeight: !showIPv6 ? '600' : '400'
+              }}
+            >
+              IPv4 (32 bit)
+            </button>
+            <button
+              onClick={() => setShowIPv6(true)}
+              style={{
+                padding: '10px 24px',
+                background: showIPv6 ? colors.teal : colors.bgLight,
+                border: 'none',
+                borderRadius: '8px',
+                color: showIPv6 ? '#000' : colors.text,
+                cursor: 'pointer',
+                fontWeight: showIPv6 ? '600' : '400'
+              }}
+            >
+              IPv6 (128 bit)
+            </button>
+          </div>
+
+          {!showIPv6 ? (
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                flexWrap: 'wrap',
+                padding: '20px',
+                background: colors.bgLight,
+                borderRadius: '8px',
+                marginBottom: '16px'
+              }}>
+                {Array.from({ length: 43 }).map((_, i) => (
+                  <div key={i} style={{
+                    width: '12px',
+                    height: '12px',
+                    background: colors.info,
+                    borderRadius: '2px',
+                    opacity: 0.8
+                  }} />
+                ))}
+                <span style={{ color: colors.textDim, fontSize: '11px', marginLeft: '8px' }}>
+                  = ~4.3 miliardi di indirizzi
+                </span>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: colors.info, fontFamily: 'JetBrains Mono' }}>
+                  2³² = 4,294,967,296
+                </div>
+                <div style={{ color: colors.textDim, fontSize: '13px', marginTop: '8px' }}>
+                  Circa <strong>0.5 indirizzi</strong> per ogni essere umano sulla Terra
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{
+                padding: '20px',
+                background: colors.bgLight,
+                borderRadius: '8px',
+                marginBottom: '16px',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  marginBottom: '12px',
+                  filter: 'blur(0.5px)'
+                }}>
+                  {'🟩'.repeat(50)}
+                </div>
+                <div style={{ color: colors.teal, fontSize: '11px' }}>
+                  Immagina questo pattern ripetuto 7.9 × 10²⁸ volte... 🤯
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: colors.teal, fontFamily: 'JetBrains Mono' }}>
+                  2¹²⁸ = 340,282,366,920,938,463,463,374,607,431,768,211,456
+                </div>
+                <div style={{ color: colors.textDim, fontSize: '13px', marginTop: '8px' }}>
+                  = <strong>340 undecilioni</strong> di indirizzi
+                </div>
+                <div style={{ color: colors.textDim, fontSize: '13px', marginTop: '4px' }}>
+                  = circa <strong>4.8 × 10²⁸ indirizzi</strong> per ogni essere umano
+                </div>
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  background: colors.teal + '20',
+                  borderRadius: '8px',
+                  color: colors.teal,
+                  fontSize: '13px'
+                }}>
+                  💡 Abbastanza per assegnare un indirizzo a <strong>ogni granello di sabbia sulla Terra</strong> moltiplicato per miliardi!
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const slides = [
+      // Slide 1: Title
+      () => (
+        <div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>🚀</div>
+          <div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 1</div>
+          <h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Da IPv4 a IPv6</h1>
+          <p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '600px', lineHeight: '1.6' }}>La storia del protocollo IP, il mistero di IPv5 e la nascita del protocollo del futuro</p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>📜 Storia IP</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>❓ IPv5</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>⚠️ Crisi IPv4</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🌐 IPv6</span>
+          </div>
+        </div>
+      ),
+
+      // Slide 2: Il problema degli indirizzi
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>⚠️</span> Il Problema: Indirizzi in Esaurimento
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <div>
+              <Glow color={colors.danger}>
+                <h3 style={{ color: colors.danger, marginBottom: '12px' }}>📉 IPv4: Solo 32 bit</h3>
+                <p style={{ color: colors.textDim, lineHeight: '1.7' }}>
+                  Nel 1981, quando fu definito IPv4, <strong style={{ color: colors.text }}>4.3 miliardi di indirizzi</strong> sembravano infiniti.
+                </p>
+                <p style={{ color: colors.textDim, lineHeight: '1.7', marginTop: '12px' }}>
+                  Internet era un progetto accademico con poche centinaia di computer. Chi avrebbe mai immaginato...
+                </p>
+                <ul style={{ color: colors.textDim, marginTop: '12px', paddingLeft: '20px', lineHeight: '2' }}>
+                  <li>📱 Smartphone (8 miliardi)</li>
+                  <li>💻 Computer personali</li>
+                  <li>🏠 IoT e Smart Home</li>
+                  <li>🚗 Veicoli connessi</li>
+                  <li>🏭 Industria 4.0</li>
+                </ul>
+              </Glow>
+            </div>
+            <div>
+              <Glow color={colors.success}>
+                <h3 style={{ color: colors.success, marginBottom: '12px' }}>📈 IPv6: 128 bit</h3>
+                <p style={{ color: colors.textDim, lineHeight: '1.7' }}>
+                  IPv6 fornisce <strong style={{ color: colors.text }}>340 undecilioni</strong> di indirizzi.
+                </p>
+                <Code title="Confronto numerico">
+{`IPv4: 2³²  = 4.3 × 10⁹
+IPv6: 2¹²⁸ = 3.4 × 10³⁸
+
+Rapporto: IPv6/IPv4 ≈ 7.9 × 10²⁸`}</Code>
+                <p style={{ color: colors.textDim, lineHeight: '1.7', marginTop: '12px' }}>
+                  Abbastanza per assegnare <strong style={{ color: colors.teal }}>miliardi di indirizzi</strong> a ogni essere umano, per sempre.
+                </p>
+              </Glow>
+            </div>
+          </div>
+          <Box type="info" title="Momento chiave">
+            Il <strong>3 febbraio 2011</strong>, IANA (Internet Assigned Numbers Authority) ha allocato gli ultimi blocchi /8 di IPv4.
+            Da quel momento, i RIR regionali hanno progressivamente esaurito le loro riserve.
+          </Box>
+        </div>
+      ),
+
+      // Slide 3: Ma dov'è IPv5?
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>❓</span> Ma Dov'è Finito IPv5?
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <Glow color={colors.purple}>
+              <h3 style={{ color: colors.purple, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🎬 ST-II: Lo Stream Protocol
+              </h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '12px' }}>
+                Il numero di versione <strong style={{ color: colors.text }}>5</strong> era già stato assegnato a un protocollo sperimentale chiamato
+                <strong style={{ color: colors.purple }}> Internet Stream Protocol (ST)</strong>, poi evoluto in <strong style={{ color: colors.purple }}>ST-II</strong>.
+              </p>
+              <div style={{ background: colors.bgLight, padding: '16px', borderRadius: '8px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '24px' }}>📋</span>
+                  <div>
+                    <div style={{ color: colors.text, fontWeight: '600' }}>RFC 1190 (1990)</div>
+                    <div style={{ color: colors.textMuted, fontSize: '12px' }}>Experimental Internet Stream Protocol, Version 2</div>
+                  </div>
+                </div>
+              </div>
+              <p style={{ color: colors.textDim, lineHeight: '1.7' }}>
+                ST-II era progettato per <strong style={{ color: colors.text }}>streaming audio/video in tempo reale</strong> con
+                garanzie di QoS (Quality of Service).
+              </p>
+            </Glow>
+            <div>
+              <h3 style={{ color: colors.text, marginBottom: '16px' }}>🔍 Perché ST-II Non Divenne "IPv5"</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <span style={{ background: colors.danger + '30', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', color: colors.danger, fontWeight: '600' }}>1</span>
+                  <div>
+                    <div style={{ color: colors.text, fontWeight: '500', marginBottom: '4px' }}>Non era un sostituto di IP</div>
+                    <div style={{ color: colors.textDim, fontSize: '13px' }}>Era pensato per coesistere con IPv4, non rimpiazzarlo</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <span style={{ background: colors.warn + '30', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', color: colors.warn, fontWeight: '600' }}>2</span>
+                  <div>
+                    <div style={{ color: colors.text, fontWeight: '500', marginBottom: '4px' }}>Usava comunque indirizzi a 32 bit</div>
+                    <div style={{ color: colors.textDim, fontSize: '13px' }}>Non risolveva il problema dell'esaurimento</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <span style={{ background: colors.info + '30', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', color: colors.info, fontWeight: '600' }}>3</span>
+                  <div>
+                    <div style={{ color: colors.text, fontWeight: '500', marginBottom: '4px' }}>Mai ampiamente adottato</div>
+                    <div style={{ color: colors.textDim, fontSize: '13px' }}>Rimase un protocollo sperimentale</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <span style={{ background: colors.success + '30', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', color: colors.success, fontWeight: '600' }}>4</span>
+                  <div>
+                    <div style={{ color: colors.text, fontWeight: '500', marginBottom: '4px' }}>Il campo Version era già "5"</div>
+                    <div style={{ color: colors.textDim, fontSize: '13px' }}>Per evitare confusioni, IPng prese il numero 6</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Box type="tip" title="Curiosità">
+            Nel campo <code style={{ background: colors.bgLight, padding: '2px 6px', borderRadius: '4px' }}>Version</code> dell'header IP (4 bit),
+            il valore <strong>0101</strong> (5 in binario) era riservato per ST-II.
+            Per questo IPv6 usa <strong>0110</strong> (6 in binario).
+          </Box>
+        </div>
+      ),
+
+      // Slide 4: Le "toppe" prima di IPv6
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🩹</span> Le Soluzioni Temporanee
+          </h2>
+          <p style={{ color: colors.textDim, marginBottom: '24px', fontSize: '15px', lineHeight: '1.6' }}>
+            Prima che IPv6 fosse pronto, furono adottate diverse soluzioni per rallentare l'esaurimento degli indirizzi IPv4.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            <Glow color={colors.info}>
+              <h3 style={{ color: colors.info, marginBottom: '12px' }}>📦 CIDR (1993)</h3>
+              <p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.6', marginBottom: '12px' }}>
+                <strong style={{ color: colors.text }}>Classless Inter-Domain Routing</strong> eliminò le classi rigide A/B/C,
+                permettendo allocazioni più flessibili.
+              </p>
+              <Code title="Prima vs Dopo CIDR">
+{`# Prima: Classi rigide
+Classe A: /8  (16M host) - spreco!
+Classe B: /16 (65K host)
+Classe C: /24 (254 host)
+
+# Dopo: Prefissi flessibili
+192.168.1.0/26  → 62 host
+10.0.0.0/12     → 1M host`}</Code>
+              <div style={{ color: colors.info, fontSize: '12px', marginTop: '8px' }}>✓ Ridusse lo spreco ma non risolse il problema</div>
+            </Glow>
+
+            <Glow color={colors.warn}>
+              <h3 style={{ color: colors.warn, marginBottom: '12px' }}>🔄 NAT (1994)</h3>
+              <p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.6', marginBottom: '12px' }}>
+                <strong style={{ color: colors.text }}>Network Address Translation</strong> permise a intere reti di condividere
+                un solo indirizzo IP pubblico.
+              </p>
+              <Code title="NAT in azione">
+{`# Rete interna (privata)
+192.168.1.10 →
+192.168.1.11 → Router NAT → 203.0.113.5
+192.168.1.12 →    (1 IP pubblico)
+
+# Traduzione delle porte (PAT)
+192.168.1.10:54321 → 203.0.113.5:40001
+192.168.1.11:54322 → 203.0.113.5:40002`}</Code>
+              <div style={{ color: colors.warn, fontSize: '12px', marginTop: '8px' }}>⚠️ Funziona ma rompe il modello end-to-end</div>
+            </Glow>
+
+            <Glow color={colors.danger}>
+              <h3 style={{ color: colors.danger, marginBottom: '12px' }}>🏠 Indirizzi Privati (RFC 1918)</h3>
+              <p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.6', marginBottom: '12px' }}>
+                Range riservati per uso interno, <strong style={{ color: colors.text }}>non instradabili</strong> su Internet.
+              </p>
+              <Code title="Range RFC 1918">
+{`10.0.0.0/8      → 16.7M indirizzi
+172.16.0.0/12   → 1M indirizzi
+192.168.0.0/16  → 65K indirizzi
+
+# Usati ovunque: case, aziende, cloud`}</Code>
+              <div style={{ color: colors.danger, fontSize: '12px', marginTop: '8px' }}>⚠️ Riuso degli stessi IP ovunque = problemi di conflitto</div>
+            </Glow>
+          </div>
+          <Box type="warn" title="Il problema del NAT">
+            NAT ha permesso di "sopravvivere" ma ha rotto il principio fondamentale di Internet:
+            la <strong>comunicazione end-to-end</strong>. Con NAT, i dispositivi dietro un router non sono
+            direttamente raggiungibili dall'esterno, causando problemi con VoIP, gaming, P2P e IoT.
+          </Box>
+        </div>
+      ),
+
+      // Slide 5: La nascita di IPv6
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🌐</span> La Nascita di IPv6
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <div>
+              <h3 style={{ color: colors.teal, marginBottom: '16px' }}>📋 Il Processo di Standardizzazione</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ background: colors.bgCard, padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${colors.info}` }}>
+                  <div style={{ color: colors.info, fontWeight: '600', marginBottom: '4px' }}>1990-1992: Allarme e Ricerca</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>IETF riconosce il problema e avvia il gruppo di lavoro "IP Next Generation" (IPng)</div>
+                </div>
+                <div style={{ background: colors.bgCard, padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${colors.purple}` }}>
+                  <div style={{ color: colors.purple, fontWeight: '600', marginBottom: '4px' }}>1993: Le Proposte</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>Diverse proposte: TUBA, CATNIP, SIPP. Vince SIPP (Simple IP Plus)</div>
+                </div>
+                <div style={{ background: colors.bgCard, padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${colors.warn}` }}>
+                  <div style={{ color: colors.warn, fontWeight: '600', marginBottom: '4px' }}>1995: IPng Diventa IPv6</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>RFC 1883 definisce la prima versione di IPv6</div>
+                </div>
+                <div style={{ background: colors.bgCard, padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${colors.teal}` }}>
+                  <div style={{ color: colors.teal, fontWeight: '600', marginBottom: '4px' }}>1998: RFC 2460</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>Versione definitiva della specifica IPv6</div>
+                </div>
+                <div style={{ background: colors.bgCard, padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${colors.success}` }}>
+                  <div style={{ color: colors.success, fontWeight: '600', marginBottom: '4px' }}>2017: RFC 8200</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>Aggiornamento che rende obsoleto RFC 2460. IPv6 è ora Internet Standard</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 style={{ color: colors.text, marginBottom: '16px' }}>🎯 Obiettivi di Progettazione</h3>
+              <Glow color={colors.teal}>
+                <ul style={{ color: colors.textDim, lineHeight: '2.2', paddingLeft: '20px' }}>
+                  <li><strong style={{ color: colors.text }}>Spazio indirizzi enorme</strong> - 128 bit invece di 32</li>
+                  <li><strong style={{ color: colors.text }}>Header semplificato</strong> - Fisso a 40 byte, più efficiente</li>
+                  <li><strong style={{ color: colors.text }}>Eliminare NAT</strong> - Ogni dispositivo ha IP pubblico</li>
+                  <li><strong style={{ color: colors.text }}>Autoconfigurazione</strong> - SLAAC nativo</li>
+                  <li><strong style={{ color: colors.text }}>Sicurezza integrata</strong> - IPsec standard</li>
+                  <li><strong style={{ color: colors.text }}>Supporto QoS migliorato</strong> - Flow Label</li>
+                  <li><strong style={{ color: colors.text }}>Mobilità</strong> - Mobile IPv6 nativo</li>
+                  <li><strong style={{ color: colors.text }}>Multicast efficiente</strong> - Niente broadcast</li>
+                </ul>
+              </Glow>
+              <Box type="success" title="Filosofia IPv6">
+                IPv6 non è una "patch" di IPv4: è una <strong>riprogettazione completa</strong> del livello rete,
+                pensata per i prossimi 100 anni di Internet.
+              </Box>
+            </div>
+          </div>
+        </div>
+      ),
+
+      // Slide 6: Timeline Interattiva
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📅</span> Timeline: 50 Anni di Protocollo IP
+          </h2>
+          <IPTimeline />
+        </div>
+      ),
+
+      // Slide 7: Simulatore Esaurimento
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🎮</span> Simulatore: L'Esaurimento di IPv4
+          </h2>
+          <IPv4ExhaustionSimulator />
+          <Box type="info" title="Cosa osservare">
+            Nota come la crescita è stata <strong>esponenziale</strong>: lenta nei primi anni, poi sempre più rapida.
+            Il boom di Internet negli anni '90 e l'esplosione mobile negli anni 2000 hanno accelerato drammaticamente il consumo.
+          </Box>
+        </div>
+      ),
+
+      // Slide 8: Confronto Spazio Indirizzi
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🔢</span> IPv4 vs IPv6: Quanto è Grande la Differenza?
+          </h2>
+          <AddressSpaceComparison />
+          <div style={{ marginTop: '24px' }}>
+            <Box type="teal" title="Per mettere le cose in prospettiva">
+              <ul style={{ lineHeight: '2', paddingLeft: '20px' }}>
+                <li>Con IPv6, ogni <strong>metro quadrato</strong> della superficie terrestre può avere <strong>6.5 × 10²³ indirizzi</strong></li>
+                <li>Ci sono più indirizzi IPv6 che <strong>atomi nel corpo umano</strong> (circa 7 × 10²⁷)</li>
+                <li>Se assegnassimo <strong>1 milione di indirizzi al secondo</strong>, ci vorrebbero <strong>10 miliardi di miliardi di anni</strong> per esaurirli</li>
+              </ul>
+            </Box>
+          </div>
+        </div>
+      ),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+
+      useEffect(() => {
+        const handler = e => {
+          if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+          if (e.key === 'Escape') window.location.href = 'index.html';
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+      }, []);
+
+      return (
+        <div style={{ minHeight: '100vh', background: colors.bg }}>
+          <div className="top-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a>
+              <span style={{ color: colors.border }}>|</span>
+              <span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 1</span>
+              <span style={{ color: colors.textDim }}>Da IPv4 a IPv6</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span>
+              <div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}>
+                <div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentAlt})`, borderRadius: '2px', transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
+            <div className="slide-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+              {slides[current]()}
+            </div>
+          </div>
+          <div className="bottom-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>
+            <button onClick={prev} disabled={current === 0} style={{ padding: '10px 24px', background: current === 0 ? colors.bgLight : colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: current === 0 ? colors.textMuted : colors.text, cursor: current === 0 ? 'not-allowed' : 'pointer', fontSize: '14px' }}>← Indietro</button>
+            <button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>
+            {current === total - 1 && (
+              <a href="modulo2-indirizzamento.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.teal}, #0d9488)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 2: Indirizzamento →</a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

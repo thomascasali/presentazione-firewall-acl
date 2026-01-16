@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo 3 - Configurazione IPv6</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; }
+    @media (max-width: 768px) {
+      .slide-content { padding: 16px !important; }
+      .slide-content h1 { font-size: 28px !important; }
+      .slide-content h2 { font-size: 20px !important; }
+      .slide-content h3 { font-size: 16px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const colors = {
+      bg: '#0a0e17', bgCard: '#111827', bgLight: '#1e293b',
+      accent: '#0ea5e9', accentAlt: '#38bdf8',
+      text: '#f1f5f9', textDim: '#94a3b8', textMuted: '#64748b',
+      border: '#334155',
+      success: '#22c55e', danger: '#ef4444', warn: '#f59e0b', info: '#0ea5e9', purple: '#a78bfa', cyan: '#22d3ee', teal: '#14b8a6'
+    };
+
+    const Code = ({ children, title }) => (
+      <div style={{ background: '#0d1117', borderRadius: '8px', border: `1px solid ${colors.border}`, margin: '12px 0', overflow: 'hidden' }}>
+        {title && <div style={{ background: '#161b22', padding: '8px 16px', borderBottom: `1px solid ${colors.border}`, fontFamily: 'monospace', fontSize: '11px', color: colors.textDim }}><span style={{color: colors.accent}}>●</span> {title}</div>}
+        <pre style={{ margin: 0, padding: '14px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', lineHeight: '1.5', color: colors.text, overflowX: 'auto' }}>{children}</pre>
+      </div>
+    );
+
+    const Box = ({ type = 'info', title, children }) => {
+      const cfg = { info: { c: colors.info, i: 'ℹ️' }, warn: { c: colors.warn, i: '⚠️' }, danger: { c: colors.danger, i: '🛑' }, tip: { c: colors.purple, i: '💡' }, success: { c: colors.success, i: '✓' }, teal: { c: colors.teal, i: '🌐' } };
+      const { c, i } = cfg[type] || cfg.info;
+      return (
+        <div style={{ background: c + '15', border: `1px solid ${c}40`, borderLeft: `4px solid ${c}`, borderRadius: '0 8px 8px 0', padding: '14px 18px', margin: '14px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', fontWeight: '600', color: c }}>{i} {title}</div>
+          <div style={{ color: colors.textDim, lineHeight: '1.5', fontSize: '13px' }}>{children}</div>
+        </div>
+      );
+    };
+
+    const Glow = ({ children, color = colors.accent }) => (
+      <div style={{ position: 'relative', padding: '2px', borderRadius: '12px', background: `linear-gradient(135deg, ${color}40, transparent, ${color}20)` }}>
+        <div style={{ background: colors.bgCard, borderRadius: '10px', padding: '20px' }}>{children}</div>
+      </div>
+    );
+
+    // Simulatore SLAAC
+    const SLAACSimulator = () => {
+      const [step, setStep] = useState(0);
+      const [running, setRunning] = useState(false);
+      const [prefix, setPrefix] = useState('2001:db8:1234:5678');
+      const [macAddress] = useState('a0:b4:c5:12:34:56');
+
+      const generateEUI64 = (mac) => {
+        const parts = mac.split(':');
+        // Flip 7th bit of first byte
+        const firstByte = parseInt(parts[0], 16) ^ 0x02;
+        const eui64 = [
+          firstByte.toString(16).padStart(2, '0'),
+          parts[1],
+          parts[2],
+          'ff',
+          'fe',
+          parts[3],
+          parts[4],
+          parts[5]
+        ];
+        return `${eui64[0]}${eui64[1]}:${eui64[2]}ff:fe${eui64[3]}:${eui64[4]}${eui64[5]}`;
+      };
+
+      const interfaceId = generateEUI64(macAddress);
+      const fullAddress = `${prefix}:${interfaceId}`;
+      const linkLocal = `fe80::${interfaceId}`;
+
+      const steps = [
+        { title: 'Interfaccia Attivata', desc: 'L\'interfaccia di rete viene attivata', icon: '🔌', detail: 'L\'host genera automaticamente un indirizzo link-local' },
+        { title: 'Link-Local Generato', desc: `Indirizzo: ${linkLocal}`, icon: '🔗', detail: 'Basato su MAC address usando EUI-64' },
+        { title: 'Router Solicitation', desc: 'L\'host invia RS a ff02::2 (tutti i router)', icon: '📤', detail: 'ICMPv6 Type 133 - Richiesta di configurazione' },
+        { title: 'Router Advertisement', desc: `Il router risponde con prefisso ${prefix}::/64`, icon: '📥', detail: 'ICMPv6 Type 134 - Contiene prefisso, lifetime, flags' },
+        { title: 'Indirizzo Globale', desc: `Generato: ${fullAddress}`, icon: '🌍', detail: 'Prefisso dal RA + Interface ID dall\'host' },
+        { title: 'DAD (Duplicate Address Detection)', desc: 'Verifica che l\'indirizzo non sia già in uso', icon: '🔍', detail: 'Neighbor Solicitation al proprio indirizzo tentativo' },
+        { title: 'Configurazione Completa!', desc: 'L\'host è ora connesso con indirizzo globale', icon: '✅', detail: 'Può comunicare su Internet' },
+      ];
+
+      useEffect(() => {
+        if (running && step < steps.length - 1) {
+          const timer = setTimeout(() => setStep(s => s + 1), 1500);
+          return () => clearTimeout(timer);
+        } else if (step >= steps.length - 1) {
+          setRunning(false);
+        }
+      }, [running, step]);
+
+      const reset = () => { setStep(0); setRunning(false); };
+      const start = () => { setStep(0); setRunning(true); };
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ⚙️ Simulatore SLAAC (Stateless Address Autoconfiguration)
+          </h3>
+
+          {/* Network Diagram */}
+          <div style={{ background: colors.bgLight, borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
+            <svg viewBox="0 0 500 120" style={{ width: '100%', maxWidth: '500px', margin: '0 auto', display: 'block' }}>
+              {/* Router */}
+              <rect x="30" y="30" width="80" height="60" rx="8" fill={colors.bgCard} stroke={step >= 3 ? colors.success : colors.border} strokeWidth="2" />
+              <text x="70" y="55" textAnchor="middle" fill={colors.text} fontSize="10" fontWeight="bold">Router</text>
+              <text x="70" y="70" textAnchor="middle" fontSize="16">🌐</text>
+
+              {/* Host */}
+              <rect x="390" y="30" width="80" height="60" rx="8" fill={colors.bgCard} stroke={step >= 6 ? colors.success : step >= 1 ? colors.warn : colors.border} strokeWidth="2" />
+              <text x="430" y="55" textAnchor="middle" fill={colors.text} fontSize="10" fontWeight="bold">Host</text>
+              <text x="430" y="70" textAnchor="middle" fontSize="16">💻</text>
+
+              {/* Connection line */}
+              <line x1="110" y1="60" x2="390" y2="60" stroke={colors.border} strokeWidth="2" strokeDasharray="4" />
+
+              {/* Messages */}
+              {step === 2 && (
+                <>
+                  <circle cx="200" cy="50" r="6" fill={colors.info}>
+                    <animate attributeName="cx" from="380" to="120" dur="0.5s" fill="freeze" />
+                  </circle>
+                  <text x="250" y="45" textAnchor="middle" fill={colors.info} fontSize="9">RS →</text>
+                </>
+              )}
+              {step === 3 && (
+                <>
+                  <circle cx="300" cy="70" r="6" fill={colors.success}>
+                    <animate attributeName="cx" from="120" to="380" dur="0.5s" fill="freeze" />
+                  </circle>
+                  <text x="250" y="85" textAnchor="middle" fill={colors.success} fontSize="9">← RA</text>
+                </>
+              )}
+              {step === 5 && (
+                <text x="250" y="55" textAnchor="middle" fill={colors.warn} fontSize="9">🔍 DAD Check</text>
+              )}
+            </svg>
+          </div>
+
+          {/* Current Step */}
+          <div style={{
+            background: step === steps.length - 1 ? colors.success + '20' : colors.accent + '20',
+            border: `1px solid ${step === steps.length - 1 ? colors.success : colors.accent}`,
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '32px' }}>{steps[step].icon}</span>
+              <div>
+                <div style={{ color: colors.text, fontWeight: '600', fontSize: '16px' }}>
+                  Step {step + 1}: {steps[step].title}
+                </div>
+                <div style={{ color: colors.textDim, fontSize: '13px' }}>{steps[step].desc}</div>
+              </div>
+            </div>
+            <div style={{
+              background: colors.bgLight,
+              padding: '10px 14px',
+              borderRadius: '6px',
+              color: colors.textMuted,
+              fontSize: '12px'
+            }}>
+              {steps[step].detail}
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
+            {steps.map((_, i) => (
+              <div key={i} style={{
+                flex: 1,
+                height: '4px',
+                borderRadius: '2px',
+                background: i <= step ? colors.accent : colors.bgLight,
+                transition: 'background 0.3s'
+              }} />
+            ))}
+          </div>
+
+          {/* Controls */}
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button onClick={reset} style={{ padding: '10px 20px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer' }}>
+              ⏮️ Reset
+            </button>
+            <button onClick={start} disabled={running} style={{ padding: '10px 24px', background: running ? colors.bgLight : colors.accent, border: 'none', borderRadius: '8px', color: running ? colors.textMuted : '#000', cursor: running ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+              {running ? '⏳ In corso...' : '▶️ Avvia SLAAC'}
+            </button>
+          </div>
+
+          {/* Info */}
+          <div style={{ marginTop: '16px', padding: '12px', background: colors.bgLight, borderRadius: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '11px' }}>
+              <div>
+                <div style={{ color: colors.textMuted }}>MAC Address:</div>
+                <div style={{ color: colors.text, fontFamily: 'JetBrains Mono' }}>{macAddress}</div>
+              </div>
+              <div>
+                <div style={{ color: colors.textMuted }}>Interface ID (EUI-64):</div>
+                <div style={{ color: colors.text, fontFamily: 'JetBrains Mono' }}>{interfaceId}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // NDP Message Visualizer
+    const NDPVisualizer = () => {
+      const [selected, setSelected] = useState('RS');
+
+      const messages = {
+        RS: {
+          name: 'Router Solicitation',
+          type: 'ICMPv6 Type 133',
+          icon: '📤',
+          color: colors.info,
+          src: 'Host (link-local o ::)',
+          dst: 'ff02::2 (tutti i router)',
+          desc: 'L\'host richiede informazioni di configurazione ai router presenti sul link.',
+          when: 'All\'avvio dell\'interfaccia o quando serve un RA immediato'
+        },
+        RA: {
+          name: 'Router Advertisement',
+          type: 'ICMPv6 Type 134',
+          icon: '📥',
+          color: colors.success,
+          src: 'Router (link-local)',
+          dst: 'ff02::1 (tutti i nodi) o unicast',
+          desc: 'Il router annuncia: prefisso, MTU, hop limit, flags M/O, lifetime.',
+          when: 'Periodicamente (ogni ~200s) o in risposta a RS'
+        },
+        NS: {
+          name: 'Neighbor Solicitation',
+          type: 'ICMPv6 Type 135',
+          icon: '🔍',
+          color: colors.warn,
+          src: 'Host richiedente',
+          dst: 'Solicited-node multicast o unicast',
+          desc: 'Risolve un indirizzo IPv6 in MAC address (equivalente ARP). Usato anche per DAD.',
+          when: 'Quando serve il MAC di un vicino, o per verificare duplicati'
+        },
+        NA: {
+          name: 'Neighbor Advertisement',
+          type: 'ICMPv6 Type 136',
+          icon: '📋',
+          color: colors.purple,
+          src: 'Host che risponde',
+          dst: 'Unicast al richiedente o multicast',
+          desc: 'Risposta a NS: contiene il MAC address del mittente.',
+          when: 'In risposta a NS o quando cambia il proprio MAC'
+        },
+        Redirect: {
+          name: 'Redirect',
+          type: 'ICMPv6 Type 137',
+          icon: '↪️',
+          color: colors.cyan,
+          src: 'Router',
+          dst: 'Unicast all\'host',
+          desc: 'Informa un host che esiste un percorso migliore per una destinazione.',
+          when: 'Quando il router vede un percorso più efficiente'
+        }
+      };
+
+      const msg = messages[selected];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📡 NDP - Neighbor Discovery Protocol
+          </h3>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            {Object.entries(messages).map(([key, m]) => (
+              <button
+                key={key}
+                onClick={() => setSelected(key)}
+                style={{
+                  padding: '8px 16px',
+                  background: selected === key ? m.color : colors.bgLight,
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: selected === key ? '#000' : colors.text,
+                  cursor: 'pointer',
+                  fontWeight: selected === key ? '600' : '400',
+                  fontSize: '12px'
+                }}
+              >
+                {m.icon} {key}
+              </button>
+            ))}
+          </div>
+
+          <div style={{
+            background: msg.color + '20',
+            border: `1px solid ${msg.color}`,
+            borderRadius: '12px',
+            padding: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '40px' }}>{msg.icon}</span>
+              <div>
+                <div style={{ color: msg.color, fontWeight: '700', fontSize: '18px' }}>{msg.name}</div>
+                <div style={{ color: colors.textMuted, fontSize: '12px', fontFamily: 'JetBrains Mono' }}>{msg.type}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ background: colors.bgLight, padding: '12px', borderRadius: '8px' }}>
+                <div style={{ color: colors.textMuted, fontSize: '11px', marginBottom: '4px' }}>SORGENTE</div>
+                <div style={{ color: colors.text, fontSize: '12px' }}>{msg.src}</div>
+              </div>
+              <div style={{ background: colors.bgLight, padding: '12px', borderRadius: '8px' }}>
+                <div style={{ color: colors.textMuted, fontSize: '11px', marginBottom: '4px' }}>DESTINAZIONE</div>
+                <div style={{ color: colors.text, fontSize: '12px' }}>{msg.dst}</div>
+              </div>
+            </div>
+
+            <p style={{ color: colors.textDim, fontSize: '13px', lineHeight: '1.6', marginBottom: '12px' }}>
+              {msg.desc}
+            </p>
+
+            <div style={{ background: colors.bgLight, padding: '10px 14px', borderRadius: '6px' }}>
+              <span style={{ color: colors.textMuted, fontSize: '11px' }}>📅 Quando: </span>
+              <span style={{ color: colors.text, fontSize: '12px' }}>{msg.when}</span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // EUI-64 Calculator
+    const EUI64Calculator = () => {
+      const [mac, setMac] = useState('a0:b4:c5:12:34:56');
+      const [result, setResult] = useState(null);
+
+      const calculateEUI64 = (macAddr) => {
+        try {
+          const cleanMac = macAddr.replace(/[:-]/g, '').toLowerCase();
+          if (cleanMac.length !== 12 || !/^[0-9a-f]+$/.test(cleanMac)) {
+            return null;
+          }
+
+          const bytes = cleanMac.match(/.{2}/g);
+
+          // Step 1: Split MAC
+          const first3 = bytes.slice(0, 3);
+          const last3 = bytes.slice(3);
+
+          // Step 2: Flip 7th bit of first byte
+          const firstByteFlipped = (parseInt(bytes[0], 16) ^ 0x02).toString(16).padStart(2, '0');
+
+          // Step 3: Insert FF:FE
+          const eui64Bytes = [firstByteFlipped, bytes[1], bytes[2], 'ff', 'fe', bytes[3], bytes[4], bytes[5]];
+
+          // Format as IPv6 interface ID
+          const interfaceId = `${eui64Bytes[0]}${eui64Bytes[1]}:${eui64Bytes[2]}${eui64Bytes[3]}:${eui64Bytes[4]}${eui64Bytes[5]}:${eui64Bytes[6]}${eui64Bytes[7]}`;
+
+          return {
+            original: bytes.join(':'),
+            firstByteOriginal: bytes[0],
+            firstByteFlipped,
+            first3: first3.join(':'),
+            last3: last3.join(':'),
+            eui64Bytes,
+            interfaceId,
+            linkLocal: `fe80::${interfaceId}`
+          };
+        } catch {
+          return null;
+        }
+      };
+
+      useEffect(() => {
+        setResult(calculateEUI64(mac));
+      }, [mac]);
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🔧 Calcolatore EUI-64
+          </h3>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ color: colors.textDim, fontSize: '12px', marginBottom: '6px', display: 'block' }}>
+              Inserisci MAC Address:
+            </label>
+            <input
+              type="text"
+              value={mac}
+              onChange={(e) => setMac(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                background: colors.bgLight,
+                border: `1px solid ${result ? colors.border : colors.danger}`,
+                borderRadius: '8px',
+                color: colors.text,
+                fontFamily: 'JetBrains Mono',
+                fontSize: '14px'
+              }}
+              placeholder="aa:bb:cc:dd:ee:ff"
+            />
+          </div>
+
+          {result && (
+            <>
+              <div style={{ background: colors.bgLight, borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+                <div style={{ color: colors.textMuted, fontSize: '11px', marginBottom: '8px', textTransform: 'uppercase' }}>
+                  Processo di conversione:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ background: colors.info + '30', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', color: colors.info }}>1</span>
+                    <span style={{ color: colors.textDim, fontSize: '12px' }}>MAC: </span>
+                    <code style={{ color: colors.text }}>{result.first3}</code>
+                    <span style={{ color: colors.textMuted }}>:</span>
+                    <code style={{ color: colors.text }}>{result.last3}</code>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ background: colors.warn + '30', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', color: colors.warn }}>2</span>
+                    <span style={{ color: colors.textDim, fontSize: '12px' }}>Inserisci FF:FE al centro</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ background: colors.purple + '30', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', color: colors.purple }}>3</span>
+                    <span style={{ color: colors.textDim, fontSize: '12px' }}>Flip 7° bit: </span>
+                    <code style={{ color: colors.danger }}>{result.firstByteOriginal}</code>
+                    <span style={{ color: colors.textMuted }}>→</span>
+                    <code style={{ color: colors.success }}>{result.firstByteFlipped}</code>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                background: colors.success + '20',
+                border: `1px solid ${colors.success}`,
+                borderRadius: '12px',
+                padding: '16px'
+              }}>
+                <div style={{ color: colors.success, fontWeight: '600', marginBottom: '8px' }}>Risultato:</div>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  <div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px' }}>Interface ID (EUI-64):</div>
+                    <div style={{ fontFamily: 'JetBrains Mono', color: colors.text }}>{result.interfaceId}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: colors.textMuted, fontSize: '11px' }}>Link-Local completo:</div>
+                    <div style={{ fontFamily: 'JetBrains Mono', color: colors.text }}>{result.linkLocal}</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // DHCPv6 vs SLAAC Comparison
+    const ConfigMethodsComparison = () => {
+      const [method, setMethod] = useState('slaac');
+
+      const methods = {
+        slaac: {
+          name: 'SLAAC',
+          full: 'Stateless Address Autoconfiguration',
+          color: colors.success,
+          icon: '🤖',
+          pros: [
+            'Nessun server necessario',
+            'Configurazione automatica',
+            'Scalabile',
+            'Privacy Extensions disponibili'
+          ],
+          cons: [
+            'Non fornisce DNS (serve RDNSS)',
+            'Nessun controllo centralizzato',
+            'No opzioni aggiuntive'
+          ],
+          flags: 'M=0, O=0',
+          process: [
+            'Host genera link-local',
+            'Router invia RA con prefisso',
+            'Host genera indirizzo globale',
+            'DAD per verifica unicità'
+          ]
+        },
+        stateless: {
+          name: 'SLAAC + DHCPv6 Stateless',
+          full: 'Indirizzo da SLAAC, opzioni da DHCP',
+          color: colors.info,
+          icon: '🔀',
+          pros: [
+            'Indirizzo auto-configurato',
+            'DNS e opzioni da DHCPv6',
+            'Flessibilità'
+          ],
+          cons: [
+            'Richiede server DHCP',
+            'Più complesso di SLAAC puro'
+          ],
+          flags: 'M=0, O=1',
+          process: [
+            'SLAAC per indirizzo',
+            'DHCPv6 per DNS, NTP, etc.',
+            'Server non traccia indirizzi'
+          ]
+        },
+        stateful: {
+          name: 'DHCPv6 Stateful',
+          full: 'Tutto gestito da DHCP',
+          color: colors.warn,
+          icon: '🎛️',
+          pros: [
+            'Controllo centralizzato completo',
+            'Assegnazione indirizzi specifici',
+            'Logging e audit',
+            'Tutte le opzioni disponibili'
+          ],
+          cons: [
+            'Richiede server DHCP attivo',
+            'Single point of failure',
+            'Più overhead'
+          ],
+          flags: 'M=1, O=1',
+          process: [
+            'Host genera solo link-local',
+            'DHCPv6 Solicit → Server',
+            'DHCPv6 Advertise ← Server',
+            'DHCPv6 Request → Server',
+            'DHCPv6 Reply ← Server'
+          ]
+        }
+      };
+
+      const m = methods[method];
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <h3 style={{ color: colors.accent, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ⚖️ Confronto Metodi di Configurazione
+          </h3>
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            {Object.entries(methods).map(([key, m]) => (
+              <button
+                key={key}
+                onClick={() => setMethod(key)}
+                style={{
+                  padding: '10px 16px',
+                  background: method === key ? m.color : colors.bgLight,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: method === key ? '#000' : colors.text,
+                  cursor: 'pointer',
+                  fontWeight: method === key ? '600' : '400',
+                  fontSize: '13px'
+                }}
+              >
+                {m.icon} {m.name}
+              </button>
+            ))}
+          </div>
+
+          <div style={{
+            background: m.color + '15',
+            border: `1px solid ${m.color}`,
+            borderRadius: '12px',
+            padding: '20px'
+          }}>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ color: m.color, fontWeight: '700', fontSize: '18px', marginBottom: '4px' }}>
+                {m.icon} {m.name}
+              </div>
+              <div style={{ color: colors.textDim, fontSize: '13px' }}>{m.full}</div>
+              <div style={{
+                display: 'inline-block',
+                marginTop: '8px',
+                padding: '4px 10px',
+                background: colors.bgLight,
+                borderRadius: '6px',
+                fontFamily: 'JetBrains Mono',
+                fontSize: '11px',
+                color: colors.textMuted
+              }}>
+                RA Flags: {m.flags}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <div style={{ color: colors.success, fontWeight: '600', marginBottom: '8px', fontSize: '13px' }}>✅ Vantaggi</div>
+                <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '16px', lineHeight: '1.8' }}>
+                  {m.pros.map((p, i) => <li key={i}>{p}</li>)}
+                </ul>
+              </div>
+              <div>
+                <div style={{ color: colors.danger, fontWeight: '600', marginBottom: '8px', fontSize: '13px' }}>❌ Svantaggi</div>
+                <ul style={{ color: colors.textDim, fontSize: '12px', paddingLeft: '16px', lineHeight: '1.8' }}>
+                  {m.cons.map((c, i) => <li key={i}>{c}</li>)}
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ background: colors.bgLight, borderRadius: '8px', padding: '12px' }}>
+              <div style={{ color: colors.textMuted, fontSize: '11px', marginBottom: '8px' }}>PROCESSO:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {m.process.map((step, i) => (
+                  <span key={i} style={{
+                    background: colors.bgCard,
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    color: colors.text,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span style={{ color: m.color, fontWeight: '600' }}>{i + 1}</span>
+                    {step}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const slides = [
+      // Slide 1: Title
+      () => (
+        <div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>⚙️</div>
+          <div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 3</div>
+          <h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Configurazione IPv6</h1>
+          <p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '600px', lineHeight: '1.6' }}>SLAAC, DHCPv6, Neighbor Discovery Protocol e come i dispositivi ottengono automaticamente la configurazione di rete</p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🤖 SLAAC</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>📡 NDP</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🎛️ DHCPv6</span>
+            <span style={{ padding: '6px 14px', background: colors.bgLight, borderRadius: '20px', fontSize: '12px', color: colors.textMuted }}>🔍 DAD</span>
+          </div>
+        </div>
+      ),
+
+      // Slide 2: Niente DHCP obbligatorio
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🔄</span> IPv6: Configurazione Automatica
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <Glow color={colors.danger}>
+              <h3 style={{ color: colors.danger, marginBottom: '12px' }}>📉 IPv4: DHCP Quasi Obbligatorio</h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '12px' }}>
+                In IPv4, senza DHCP devi configurare manualmente:
+              </p>
+              <ul style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '2' }}>
+                <li>Indirizzo IP</li>
+                <li>Subnet mask</li>
+                <li>Gateway</li>
+                <li>Server DNS</li>
+              </ul>
+              <p style={{ color: colors.textMuted, fontSize: '12px', marginTop: '12px' }}>
+                Link-local (169.254.x.x) esiste ma è limitato
+              </p>
+            </Glow>
+
+            <Glow color={colors.success}>
+              <h3 style={{ color: colors.success, marginBottom: '12px' }}>📈 IPv6: SLAAC Nativo</h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '12px' }}>
+                IPv6 è progettato per l'autoconfigurazione:
+              </p>
+              <ul style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '2' }}>
+                <li><strong style={{ color: colors.text }}>Link-local</strong> sempre generato</li>
+                <li><strong style={{ color: colors.text }}>SLAAC</strong> per indirizzo globale</li>
+                <li><strong style={{ color: colors.text }}>Router Advertisement</strong> per gateway</li>
+                <li>DHCPv6 <strong style={{ color: colors.text }}>opzionale</strong></li>
+              </ul>
+              <p style={{ color: colors.success, fontSize: '12px', marginTop: '12px' }}>
+                ✓ Plug & Play di default
+              </p>
+            </Glow>
+          </div>
+          <Box type="tip" title="Filosofia IPv6">
+            L'autoconfigurazione è un principio fondamentale di IPv6: un dispositivo dovrebbe potersi connettere
+            a una rete senza alcuna configurazione manuale o server dedicati.
+          </Box>
+        </div>
+      ),
+
+      // Slide 3: NDP Overview
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📡</span> NDP: Neighbor Discovery Protocol
+          </h2>
+          <div style={{ marginBottom: '24px' }}>
+            <p style={{ color: colors.textDim, lineHeight: '1.7', fontSize: '15px' }}>
+              NDP sostituisce ARP, ICMP Router Discovery e ICMP Redirect di IPv4 con un protocollo unificato basato su <strong style={{ color: colors.text }}>ICMPv6</strong>.
+            </p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+            {[
+              { icon: '🔍', title: 'Address Resolution', desc: 'Risolve IPv6 → MAC (sostituisce ARP)' },
+              { icon: '🌐', title: 'Router Discovery', desc: 'Trova router e prefissi disponibili' },
+              { icon: '🔗', title: 'Prefix Discovery', desc: 'Ottiene prefissi per autoconfigurazione' },
+              { icon: '✅', title: 'DAD', desc: 'Verifica unicità degli indirizzi' },
+              { icon: '↪️', title: 'Redirect', desc: 'Ottimizza percorsi di routing' },
+              { icon: '❤️', title: 'NUD', desc: 'Neighbor Unreachability Detection' }
+            ].map((item, i) => (
+              <div key={i} style={{ background: colors.bgLight, borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', marginBottom: '8px' }}>{item.icon}</div>
+                <div style={{ color: colors.text, fontWeight: '600', marginBottom: '4px', fontSize: '13px' }}>{item.title}</div>
+                <div style={{ color: colors.textMuted, fontSize: '11px' }}>{item.desc}</div>
+              </div>
+            ))}
+          </div>
+          <Box type="info" title="Niente più ARP!">
+            IPv6 non usa ARP. La risoluzione degli indirizzi avviene tramite <strong>Neighbor Solicitation</strong> e
+            <strong> Neighbor Advertisement</strong>, messaggi ICMPv6 che usano multicast invece di broadcast.
+          </Box>
+        </div>
+      ),
+
+      // Slide 4: NDP Visualizer
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📨</span> Messaggi NDP
+          </h2>
+          <NDPVisualizer />
+        </div>
+      ),
+
+      // Slide 5: SLAAC Explained
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🤖</span> SLAAC: Stateless Address Autoconfiguration
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <div>
+              <Glow color={colors.info}>
+                <h3 style={{ color: colors.info, marginBottom: '12px' }}>Come Funziona</h3>
+                <ol style={{ color: colors.textDim, paddingLeft: '20px', lineHeight: '2.2' }}>
+                  <li>L'host genera un <strong style={{ color: colors.text }}>link-local</strong> (fe80::...)</li>
+                  <li>Invia <strong style={{ color: colors.text }}>Router Solicitation</strong> (RS)</li>
+                  <li>Il router risponde con <strong style={{ color: colors.text }}>Router Advertisement</strong> (RA)</li>
+                  <li>L'RA contiene il <strong style={{ color: colors.text }}>prefisso /64</strong></li>
+                  <li>L'host combina prefisso + <strong style={{ color: colors.text }}>Interface ID</strong></li>
+                  <li>Esegue <strong style={{ color: colors.text }}>DAD</strong> per verificare unicità</li>
+                  <li>Indirizzo pronto all'uso!</li>
+                </ol>
+              </Glow>
+            </div>
+            <div>
+              <h3 style={{ color: colors.text, marginBottom: '16px' }}>📐 Generazione Interface ID</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ background: colors.bgLight, padding: '16px', borderRadius: '8px' }}>
+                  <div style={{ color: colors.success, fontWeight: '600', marginBottom: '6px' }}>EUI-64 (Modified)</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>
+                    Deriva dal MAC address: inserisce FF:FE al centro e flippa il 7° bit
+                  </div>
+                  <Code>{`MAC: a0:b4:c5:12:34:56
+        ↓
+ID:  a2b4:c5ff:fe12:3456`}</Code>
+                </div>
+                <div style={{ background: colors.bgLight, padding: '16px', borderRadius: '8px' }}>
+                  <div style={{ color: colors.purple, fontWeight: '600', marginBottom: '6px' }}>Privacy Extensions (RFC 4941)</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>
+                    Interface ID casuale e temporaneo, cambia periodicamente per privacy
+                  </div>
+                </div>
+                <div style={{ background: colors.bgLight, padding: '16px', borderRadius: '8px' }}>
+                  <div style={{ color: colors.warn, fontWeight: '600', marginBottom: '6px' }}>Stable Privacy (RFC 7217)</div>
+                  <div style={{ color: colors.textDim, fontSize: '13px' }}>
+                    Hash stabile per rete, cambia tra reti diverse
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+
+      // Slide 6: SLAAC Simulator
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🎮</span> Simulatore SLAAC
+          </h2>
+          <SLAACSimulator />
+        </div>
+      ),
+
+      // Slide 7: EUI-64 Calculator
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🔧</span> Calcolatore EUI-64
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <EUI64Calculator />
+            <div>
+              <Box type="info" title="Perché il 7° bit?">
+                Il 7° bit del primo byte indica se l'indirizzo è:
+                <ul style={{ marginTop: '8px', paddingLeft: '16px' }}>
+                  <li><strong>0</strong>: Universally administered (assegnato dal produttore)</li>
+                  <li><strong>1</strong>: Locally administered (configurato localmente)</li>
+                </ul>
+                In IPv6 la semantica è invertita: 1 = globalmente unico.
+              </Box>
+              <Box type="warn" title="Privacy Concern">
+                EUI-64 espone il MAC address, permettendo il tracking.
+                Per questo sono state introdotte le <strong>Privacy Extensions</strong>.
+              </Box>
+            </div>
+          </div>
+        </div>
+      ),
+
+      // Slide 8: DHCPv6
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🎛️</span> DHCPv6: Quando Serve di Più
+          </h2>
+          <ConfigMethodsComparison />
+          <Box type="tip" title="RA Flags">
+            I flag M e O nel Router Advertisement indicano come l'host deve comportarsi:
+            <ul style={{ marginTop: '8px', paddingLeft: '16px' }}>
+              <li><strong>M=1</strong> (Managed): Usa DHCPv6 per l'indirizzo</li>
+              <li><strong>O=1</strong> (Other): Usa DHCPv6 per altre info (DNS, etc.)</li>
+            </ul>
+          </Box>
+        </div>
+      ),
+
+      // Slide 9: Riepilogo Pratico
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>📋</span> Riepilogo: Sequenza di Configurazione
+          </h2>
+          <div style={{ background: colors.bgLight, borderRadius: '16px', padding: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {[
+                { step: 1, title: 'Link-Local', desc: 'L\'interfaccia genera fe80::... basato su MAC o random', icon: '🔗', color: colors.warn },
+                { step: 2, title: 'DAD per Link-Local', desc: 'Verifica che nessun altro usi lo stesso indirizzo', icon: '🔍', color: colors.info },
+                { step: 3, title: 'Router Solicitation', desc: 'L\'host cerca router sul link (ff02::2)', icon: '📤', color: colors.purple },
+                { step: 4, title: 'Router Advertisement', desc: 'Il router annuncia prefisso, MTU, lifetime, flags M/O', icon: '📥', color: colors.success },
+                { step: 5, title: 'Generazione Indirizzo Globale', desc: 'Prefisso da RA + Interface ID locale', icon: '🌍', color: colors.teal },
+                { step: 6, title: 'DAD per Indirizzo Globale', desc: 'Verifica unicità dell\'indirizzo globale', icon: '✅', color: colors.success },
+                { step: 7, title: 'Configurazione Completa', desc: 'L\'host è pronto a comunicare su Internet', icon: '🎉', color: colors.accent }
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <div style={{
+                    minWidth: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: item.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#000',
+                    fontWeight: '700',
+                    fontSize: '14px'
+                  }}>
+                    {item.step}
+                  </div>
+                  <div style={{ flex: 1, paddingTop: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span>{item.icon}</span>
+                      <span style={{ color: colors.text, fontWeight: '600' }}>{item.title}</span>
+                    </div>
+                    <p style={{ color: colors.textDim, fontSize: '13px' }}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+    ];
+
+    function App() {
+      const [current, setCurrent] = useState(0);
+      const total = slides.length;
+
+      const next = () => setCurrent(c => Math.min(c + 1, total - 1));
+      const prev = () => setCurrent(c => Math.max(c - 1, 0));
+
+      useEffect(() => {
+        const handler = e => {
+          if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+          if (e.key === 'Escape') window.location.href = 'index.html';
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+      }, []);
+
+      return (
+        <div style={{ minHeight: '100vh', background: colors.bg }}>
+          <div className="top-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a>
+              <span style={{ color: colors.border }}>|</span>
+              <span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 3</span>
+              <span style={{ color: colors.textDim }}>Configurazione IPv6</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span>
+              <div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}>
+                <div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentAlt})`, borderRadius: '2px', transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
+            <div className="slide-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+              {slides[current]()}
+            </div>
+          </div>
+          <div className="bottom-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>
+            <button onClick={prev} disabled={current === 0} style={{ padding: '10px 24px', background: current === 0 ? colors.bgLight : colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: current === 0 ? colors.textMuted : colors.text, cursor: current === 0 ? 'not-allowed' : 'pointer', fontSize: '14px' }}>← Indietro</button>
+            <button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>
+            {current === total - 1 && (
+              <a href="modulo4-header.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.teal}, #0d9488)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 4: Header →</a>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
