@@ -10,14 +10,35 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; }
-    #root { min-height: 100vh; }
+    body { background: #0a0e17; color: #f1f5f9; font-family: 'Inter', sans-serif; -webkit-text-size-adjust: 100%; }
+    #root { min-height: 100vh; min-height: 100dvh; }
+
+    @media (max-width: 1024px) { html { font-size: 15px; } }
+    @media (max-width: 768px) { html { font-size: 14px; } }
+    @media (max-width: 480px) { html { font-size: 13px; } }
+
     @media (max-width: 768px) {
-      .slide-content { padding: 16px !important; }
-      .slide-content h1 { font-size: 28px !important; }
-      .slide-content h2 { font-size: 20px !important; }
-      .slide-content h3 { font-size: 16px !important; }
+      [style*="gridTemplateColumns"] { grid-template-columns: 1fr !important; }
+      svg { max-width: 100% !important; height: auto !important; }
+      pre { font-size: 11px !important; white-space: pre-wrap !important; word-break: break-all !important; }
+      table { font-size: 11px !important; }
+      th, td { padding: 8px 6px !important; }
+      button, input, select { font-size: 14px !important; min-height: 44px; }
+    }
+    @media (max-width: 480px) {
       pre { font-size: 10px !important; }
+    }
+
+    /* Fixed Navigation Override */
+    @media (max-width: 768px) {
+      [style*="position: fixed"][style*="top: 0"] { height: 44px !important; padding: 0 12px !important; }
+      [style*="position: fixed"][style*="bottom: 0"] { height: 54px !important; gap: 8px !important; }
+      [style*="position: fixed"] a, [style*="position: fixed"] button { padding: 8px 14px !important; font-size: 12px !important; }
+    }
+    @media (max-width: 480px) {
+      [style*="position: fixed"][style*="top: 0"] { height: 40px !important; }
+      [style*="position: fixed"][style*="bottom: 0"] { height: 50px !important; }
+      [style*="position: fixed"] a, [style*="position: fixed"] button { padding: 6px 10px !important; font-size: 11px !important; }
     }
   </style>
 </head>
