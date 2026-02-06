@@ -40,6 +40,34 @@
       [style*="position: fixed"][style*="bottom: 0"] { height: 50px !important; }
       [style*="position: fixed"] a, [style*="position: fixed"] button { padding: 6px 10px !important; font-size: 11px !important; }
     }
+
+    /* ========== LARGE SCREEN OPTIMIZATIONS ========== */
+    @media (min-width: 1600px) {
+      html { font-size: 18px; }
+      h1 { font-size: 52px !important; }
+      h2 { font-size: 32px !important; }
+      h3 { font-size: 22px !important; }
+      p, li { font-size: 18px !important; line-height: 1.7 !important; }
+      pre { font-size: 15px !important; }
+      button { font-size: 16px !important; padding: 14px 28px !important; }
+    }
+    @media (min-width: 2000px) {
+      html { font-size: 20px; }
+      h1 { font-size: 60px !important; }
+      h2 { font-size: 38px !important; }
+      h3 { font-size: 26px !important; }
+      p, li { font-size: 20px !important; }
+      pre { font-size: 16px !important; padding: 20px !important; }
+      button { font-size: 18px !important; padding: 16px 32px !important; }
+    }
+    @media (min-width: 2400px) {
+      html { font-size: 22px; }
+      h1 { font-size: 68px !important; }
+      h2 { font-size: 44px !important; }
+      h3 { font-size: 30px !important; }
+      p, li { font-size: 22px !important; }
+      pre { font-size: 18px !important; }
+    }
   </style>
 </head>
 <body>
@@ -424,7 +452,7 @@ sudo ufw reset`}</Code></div><Box type="tip" title="Best Practice">UFW è perfet
       const next = () => setCurrent(c => Math.min(c + 1, total - 1));
       const prev = () => setCurrent(c => Math.max(c - 1, 0));
       useEffect(() => { const handler = e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); } if (e.key === 'Escape') window.location.href = 'index.html'; }; window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, []);
-      return (<div style={{ minHeight: '100vh', background: colors.bg }}><div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a><span style={{ color: colors.border }}>|</span><span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 4</span><span style={{ color: colors.textDim }}>Firewall Linux</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span><div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}><div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: colors.accent, borderRadius: '2px', transition: 'width 0.3s' }} /></div></div></div><div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}><div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>{slides[current]()}</div></div><div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>{current === 0 && <a href="modulo3-acl.html" style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, textDecoration: 'none', fontSize: '14px' }}>← Modulo 3</a>}{current > 0 && <button onClick={prev} style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer', fontSize: '14px' }}>← Indietro</button>}<button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>{current === total - 1 && <a href="modulo5-windows-firewall.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.purple}, #9333ea)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 5 →</a>}</div></div>);
+      return (<div style={{ minHeight: '100vh', background: colors.bg }}><div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', zIndex: 100 }}><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><a href="index.html" style={{ color: colors.textMuted, textDecoration: 'none', fontSize: '13px' }}>← Indice</a><span style={{ color: colors.border }}>|</span><span style={{ color: colors.accent, fontWeight: '600' }}>Modulo 4</span><span style={{ color: colors.textDim }}>Firewall Linux</span></div><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><span style={{ color: colors.textMuted, fontSize: '13px' }}>{current + 1} / {total}</span><div style={{ width: '100px', height: '4px', background: colors.bgLight, borderRadius: '2px' }}><div style={{ height: '100%', width: `${((current + 1) / total) * 100}%`, background: colors.accent, borderRadius: '2px', transition: 'width 0.3s' }} /></div></div></div><div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}><div style={{ maxWidth: '2200px', width: '94%', margin: '0 auto', padding: '0 24px' }}>{slides[current]()}</div></div><div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '60px', background: colors.bgCard + 'e0', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 100 }}>{current === 0 && <a href="modulo3-acl.html" style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, textDecoration: 'none', fontSize: '14px' }}>← Modulo 3</a>}{current > 0 && <button onClick={prev} style={{ padding: '10px 24px', background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, cursor: 'pointer', fontSize: '14px' }}>← Indietro</button>}<button onClick={next} disabled={current === total - 1} style={{ padding: '10px 24px', background: current === total - 1 ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: current === total - 1 ? colors.textMuted : '#000', cursor: current === total - 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>Avanti →</button>{current === total - 1 && <a href="modulo5-windows-firewall.html" style={{ padding: '10px 24px', background: `linear-gradient(135deg, ${colors.purple}, #9333ea)`, border: 'none', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Modulo 5 →</a>}</div></div>);
     }
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
