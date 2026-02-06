@@ -131,6 +131,39 @@
     @media (max-width: 480px) {
       [style*="display: 'flex'"][style*="gap"] { flex-wrap: wrap !important; }
     }
+
+    /* ========== LARGE SCREEN OPTIMIZATIONS ========== */
+    @media (min-width: 1600px) {
+      html { font-size: 18px; }
+      h1 { font-size: 52px !important; }
+      h2 { font-size: 32px !important; }
+      h3 { font-size: 22px !important; }
+      p, li { font-size: 18px !important; line-height: 1.7 !important; }
+      pre { font-size: 15px !important; }
+      button { font-size: 16px !important; padding: 14px 28px !important; }
+      svg { min-height: 200px; }
+    }
+
+    @media (min-width: 2000px) {
+      html { font-size: 20px; }
+      h1 { font-size: 60px !important; }
+      h2 { font-size: 38px !important; }
+      h3 { font-size: 26px !important; }
+      p, li { font-size: 20px !important; }
+      pre { font-size: 16px !important; padding: 20px !important; }
+      button { font-size: 18px !important; padding: 16px 32px !important; }
+      svg { min-height: 250px; }
+    }
+
+    @media (min-width: 2400px) {
+      html { font-size: 22px; }
+      h1 { font-size: 68px !important; }
+      h2 { font-size: 44px !important; }
+      h3 { font-size: 30px !important; }
+      p, li { font-size: 22px !important; }
+      pre { font-size: 18px !important; }
+      svg { min-height: 300px; }
+    }
   </style>
 </head>
 <body>
@@ -598,7 +631,7 @@ iptables -A INPUT -s 10.0.0.5 -j DROP`}</Code>
             </div>
           </div>
           <div style={{ paddingTop: '50px', paddingBottom: '70px', minHeight: 'calc(100vh - 120px)' }}>
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+            <div style={{ maxWidth: '2200px', width: '94%', margin: '0 auto', padding: '0 24px' }}>
               {slides[current]()}
             </div>
           </div>
