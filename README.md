@@ -12,12 +12,12 @@ Presentazione interattiva su Firewall e ACL per il corso di Sistemi e Reti.
 |--------|--------|-------|-----------|
 | 1 | Fondamenti Firewall | 8 | Definizione, posizionamento, DMZ, IDS/IPS, Defense in Depth, principi (Default Deny/Allow) |
 | 2 | Tipologie Firewall | 10 | Packet Filter, Stateful Inspection, Application Level Gateway, NGFW |
-| 3 | Access Control List | 15 | ACL Standard/Extended, Wildcard Mask, Named ACL, configurazione Cisco |
+| 3 | Access Control List | 16 | ACL Standard/Extended, Wildcard Mask, Named ACL, configurazione Cisco |
 | 4 | Firewall Linux | 14 | iptables, nftables, UFW, NAT, Masquerading, tables/chains/rules |
 | 5 | Windows Firewall | 8 | Profili di rete, Windows Defender Firewall, PowerShell, netsh |
 | 6 | Quiz & Riepilogo | 5 | Quiz 15 domande, simulatori di scenario, riepilogo concetti |
 
-**Totale: 60 slide**
+**Totale: 61 slide**
 
 ---
 
@@ -53,7 +53,7 @@ La presentazione include **12 simulatori** per l'apprendimento pratico:
 
 ## Caratteristiche
 
-- **60 slide** interattive organizzate in 6 moduli
+- **61 slide** interattive organizzate in 6 moduli
 - **12 simulatori** per apprendimento pratico
 - **Quiz finale** con 15 domande e spiegazioni dettagliate
 - **Design moderno** con tema scuro e gradienti

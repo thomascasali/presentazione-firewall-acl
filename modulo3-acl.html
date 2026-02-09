@@ -393,7 +393,103 @@
       // Slide 2: Intro ACL
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📋 Cosa sono le ACL?</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}><Glow><p style={{ color: colors.textDim, lineHeight: '1.7' }}>Le <strong style={{ color: colors.accent }}>Access Control List</strong> sono liste ordinate di regole che definiscono quali pacchetti sono permessi o negati su un'interfaccia di un router/switch.</p><ul style={{ color: colors.textDim, lineHeight: '1.8', paddingLeft: '18px', marginTop: '12px' }}><li>Valutate <strong style={{ color: colors.text }}>dall'alto verso il basso</strong></li><li><strong style={{ color: colors.text }}>First match wins</strong></li><li><strong style={{ color: colors.danger }}>Implicit deny</strong> alla fine</li><li>Applicate su interfacce (in/out)</li></ul></Glow><div><h3 style={{ color: colors.text, marginBottom: '12px' }}>🎯 Usi comuni</h3><div style={{ display: 'grid', gap: '8px' }}>{[['🚫', 'Filtraggio traffico', 'Blocca/permetti per IP/porta'],['🛣️', 'Route filtering', 'Controlla redistribuzione rotte'],['🔐', 'VPN/NAT', 'Definisce traffico interessante'],['📊', 'QoS', 'Classifica traffico per priorità'],].map(([icon, title, desc]) => (<div key={title} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: colors.bgLight, borderRadius: '8px' }}><span style={{ fontSize: '20px' }}>{icon}</span><div><div style={{ color: colors.text, fontWeight: '500', fontSize: '13px' }}>{title}</div><div style={{ color: colors.textMuted, fontSize: '11px' }}>{desc}</div></div></div>))}</div></div></div></div>),
 
-      // Slide 3: Standard vs Extended
+      // Slide 3: Posizionamento ACL
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📍 Dove Posizionare le ACL?</h2>
+        <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '20px', fontSize: 'clamp(14px, 1.3vw, 17px)' }}>
+          Il <strong style={{ color: colors.text }}>posizionamento</strong> delle ACL è fondamentale per l'efficienza della rete. La regola dipende dal tipo di ACL e dalla topologia.
+        </p>
+
+        {/* Rete Enterprise con più router */}
+        <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
+          <h3 style={{ color: colors.info, marginBottom: '16px', fontSize: 'clamp(15px, 1.4vw, 19px)' }}>🏢 Rete Enterprise (più router)</h3>
+          <svg viewBox="0 0 600 100" style={{ width: '100%', maxWidth: '700px', margin: '0 auto 16px', display: 'block' }}>
+            <rect x="20" y="30" width="80" height="40" fill={colors.success + '30'} stroke={colors.success} strokeWidth="2" rx="6" />
+            <text x="60" y="55" textAnchor="middle" fill={colors.success} fontSize="11" fontWeight="bold">Sorgente</text>
+            <text x="60" y="80" textAnchor="middle" fill={colors.textMuted} fontSize="9">10.0.0.0/24</text>
+
+            <line x1="100" y1="50" x2="150" y2="50" stroke={colors.textMuted} strokeWidth="2" />
+
+            <rect x="150" y="25" width="70" height="50" fill={colors.bgLight} stroke={colors.purple} strokeWidth="2" rx="6" />
+            <text x="185" y="45" textAnchor="middle" fill={colors.purple} fontSize="10" fontWeight="bold">Router A</text>
+            <text x="185" y="60" textAnchor="middle" fill={colors.purple} fontSize="8">Extended</text>
+            <text x="185" y="90" textAnchor="middle" fill={colors.purple} fontSize="8">← qui</text>
+
+            <line x1="220" y1="50" x2="280" y2="50" stroke={colors.textMuted} strokeWidth="2" />
+
+            <rect x="280" y="25" width="70" height="50" fill={colors.bgLight} stroke={colors.border} strokeWidth="2" rx="6" />
+            <text x="315" y="55" textAnchor="middle" fill={colors.textMuted} fontSize="10">Router B</text>
+
+            <line x1="350" y1="50" x2="410" y2="50" stroke={colors.textMuted} strokeWidth="2" />
+
+            <rect x="410" y="25" width="70" height="50" fill={colors.bgLight} stroke={colors.warn} strokeWidth="2" rx="6" />
+            <text x="445" y="45" textAnchor="middle" fill={colors.warn} fontSize="10" fontWeight="bold">Router C</text>
+            <text x="445" y="60" textAnchor="middle" fill={colors.warn} fontSize="8">Standard</text>
+            <text x="445" y="90" textAnchor="middle" fill={colors.warn} fontSize="8">← qui</text>
+
+            <line x1="480" y1="50" x2="530" y2="50" stroke={colors.textMuted} strokeWidth="2" />
+
+            <rect x="530" y="30" width="60" height="40" fill={colors.danger + '30'} stroke={colors.danger} strokeWidth="2" rx="6" />
+            <text x="560" y="55" textAnchor="middle" fill={colors.danger} fontSize="11" fontWeight="bold">Dest</text>
+            <text x="560" y="80" textAnchor="middle" fill={colors.textMuted} fontSize="9">192.168.1.0/24</text>
+          </svg>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '12px' }}>
+            <div style={{ background: colors.purple + '15', padding: '12px', borderRadius: '8px', border: `1px solid ${colors.purple}40` }}>
+              <div style={{ color: colors.purple, fontWeight: '600', marginBottom: '6px', fontSize: 'clamp(12px, 1.1vw, 14px)' }}>Extended ACL → vicino alla SORGENTE</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(11px, 1vw, 13px)', lineHeight: '1.5' }}>Può filtrare per sorgente E destinazione, quindi blocca subito il traffico inutile evitando che attraversi tutta la rete.</div>
+            </div>
+            <div style={{ background: colors.warn + '15', padding: '12px', borderRadius: '8px', border: `1px solid ${colors.warn}40` }}>
+              <div style={{ color: colors.warn, fontWeight: '600', marginBottom: '6px', fontSize: 'clamp(12px, 1.1vw, 14px)' }}>Standard ACL → vicino alla DESTINAZIONE</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(11px, 1vw, 13px)', lineHeight: '1.5' }}>Filtra solo per IP sorgente: se la metti troppo presto, blocchi quel traffico verso TUTTE le destinazioni!</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Singolo Router */}
+        <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ color: colors.cyan, marginBottom: '16px', fontSize: 'clamp(15px, 1.4vw, 19px)' }}>🔀 Singolo Router/Firewall</h3>
+          <p style={{ color: colors.textDim, fontSize: 'clamp(12px, 1.1vw, 14px)', marginBottom: '16px', lineHeight: '1.6' }}>
+            Con un solo dispositivo, la scelta è tra le <strong style={{ color: colors.text }}>interfacce</strong> dello stesso router:
+          </p>
+          <svg viewBox="0 0 500 120" style={{ width: '100%', maxWidth: '550px', margin: '0 auto 16px', display: 'block' }}>
+            <rect x="30" y="40" width="90" height="50" fill={colors.success + '30'} stroke={colors.success} strokeWidth="2" rx="6" />
+            <text x="75" y="60" textAnchor="middle" fill={colors.success} fontSize="10" fontWeight="bold">Rete A</text>
+            <text x="75" y="75" textAnchor="middle" fill={colors.textMuted} fontSize="9">10.0.0.0/24</text>
+
+            <line x1="120" y1="65" x2="170" y2="65" stroke={colors.textMuted} strokeWidth="2" />
+            <text x="145" y="55" textAnchor="middle" fill={colors.purple} fontSize="9" fontWeight="bold">Gi0/0</text>
+            <text x="145" y="95" textAnchor="middle" fill={colors.purple} fontSize="8">IN</text>
+
+            <rect x="170" y="30" width="140" height="70" fill={colors.bgLight} stroke={colors.accent} strokeWidth="3" rx="8" />
+            <text x="240" y="55" textAnchor="middle" fill={colors.accent} fontSize="24">🔥</text>
+            <text x="240" y="80" textAnchor="middle" fill={colors.accent} fontSize="11" fontWeight="bold">ROUTER</text>
+
+            <line x1="310" y1="65" x2="360" y2="65" stroke={colors.textMuted} strokeWidth="2" />
+            <text x="335" y="55" textAnchor="middle" fill={colors.warn} fontSize="9" fontWeight="bold">Gi0/1</text>
+            <text x="335" y="95" textAnchor="middle" fill={colors.warn} fontSize="8">OUT</text>
+
+            <rect x="360" y="40" width="90" height="50" fill={colors.danger + '30'} stroke={colors.danger} strokeWidth="2" rx="6" />
+            <text x="405" y="60" textAnchor="middle" fill={colors.danger} fontSize="10" fontWeight="bold">Rete B</text>
+            <text x="405" y="75" textAnchor="middle" fill={colors.textMuted} fontSize="9">192.168.1.0/24</text>
+          </svg>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+            <div style={{ background: colors.purple + '15', padding: '12px', borderRadius: '8px', border: `1px solid ${colors.purple}40` }}>
+              <div style={{ color: colors.purple, fontWeight: '600', marginBottom: '4px', fontSize: 'clamp(12px, 1.1vw, 14px)' }}>IN (inbound)</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(11px, 1vw, 13px)' }}>Filtra il traffico <strong style={{ color: colors.text }}>che entra</strong> nell'interfaccia (prima del routing)</div>
+            </div>
+            <div style={{ background: colors.warn + '15', padding: '12px', borderRadius: '8px', border: `1px solid ${colors.warn}40` }}>
+              <div style={{ color: colors.warn, fontWeight: '600', marginBottom: '4px', fontSize: 'clamp(12px, 1.1vw, 14px)' }}>OUT (outbound)</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(11px, 1vw, 13px)' }}>Filtra il traffico <strong style={{ color: colors.text }}>che esce</strong> dall'interfaccia (dopo il routing)</div>
+            </div>
+          </div>
+        </div>
+
+        <Box type="tip" title="Regola pratica">
+          <strong>Extended ACL</strong>: applica con <code style={{ background: colors.bgLight, padding: '2px 6px', borderRadius: '4px' }}>ip access-group 100 in</code> sull'interfaccia da cui arriva il traffico.<br/>
+          <strong>Standard ACL</strong>: applica con <code style={{ background: colors.bgLight, padding: '2px 6px', borderRadius: '4px' }}>ip access-group 10 out</code> sull'interfaccia verso la destinazione.
+        </Box>
+      </div>),
+
+      // Slide 4: Standard vs Extended
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📊 Standard vs Extended ACL</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}><div style={{ background: colors.bgCard, border: `2px solid ${colors.info}`, borderRadius: '12px', padding: '20px' }}><h3 style={{ color: colors.info, marginBottom: '12px' }}>Standard ACL (1-99)</h3><p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '12px' }}>Filtrano SOLO in base all'<strong style={{ color: colors.text }}>IP sorgente</strong>.</p><Code>{`access-list 10 permit 192.168.1.0 0.0.0.255
 access-list 10 deny any`}</Code><ul style={{ color: colors.textDim, fontSize: '12px', lineHeight: '1.6', paddingLeft: '16px' }}><li>Numeri: 1-99, 1300-1999</li><li>Posizionare vicino alla <strong style={{ color: colors.warn }}>destinazione</strong></li><li>Semplici ma limitate</li></ul></div><div style={{ background: colors.bgCard, border: `2px solid ${colors.purple}`, borderRadius: '12px', padding: '20px' }}><h3 style={{ color: colors.purple, marginBottom: '12px' }}>Extended ACL (100-199)</h3><p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '12px' }}>Filtrano per <strong style={{ color: colors.text }}>IP src/dst, protocollo, porta</strong>.</p><Code>{`access-list 100 permit tcp 192.168.1.0 0.0.0.255
   any eq 80
