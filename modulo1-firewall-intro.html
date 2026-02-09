@@ -627,51 +627,85 @@ iptables -A INPUT -s 10.0.0.5 -j DROP`}</Code>
           <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: 'clamp(24px, 3vw, 38px)' }}>
             <span style={{ fontSize: 'clamp(24px, 3vw, 36px)' }}>👁️</span> IDS e IPS
           </h2>
-          <p style={{ color: colors.textDim, fontSize: 'clamp(14px, 1.3vw, 18px)', marginBottom: '24px', lineHeight: '1.7' }}>
+          <p style={{ color: colors.textDim, fontSize: 'clamp(14px, 1.3vw, 18px)', marginBottom: '20px', lineHeight: '1.7' }}>
             Sistemi complementari al firewall che analizzano il traffico per rilevare e prevenire intrusioni e attacchi.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: '24px' }}>
+
+          {/* Cosa sono fisicamente */}
+          <div style={{ background: colors.bgLight, borderRadius: '10px', padding: '16px', marginBottom: '20px', border: `1px solid ${colors.border}` }}>
+            <h4 style={{ color: colors.text, marginBottom: '10px', fontSize: 'clamp(14px, 1.2vw, 18px)' }}>🔧 Cosa sono fisicamente?</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+              <div style={{ background: colors.bg, padding: '10px', borderRadius: '6px' }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>📦</div>
+                <div style={{ color: colors.text, fontSize: '12px', fontWeight: '600' }}>Appliance Hardware</div>
+                <div style={{ color: colors.textMuted, fontSize: '11px' }}>Dispositivi dedicati (es. Cisco, Fortinet)</div>
+              </div>
+              <div style={{ background: colors.bg, padding: '10px', borderRadius: '6px' }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>💿</div>
+                <div style={{ color: colors.text, fontSize: '12px', fontWeight: '600' }}>Software</div>
+                <div style={{ color: colors.textMuted, fontSize: '11px' }}>Installato su server Linux/Windows</div>
+              </div>
+              <div style={{ background: colors.bg, padding: '10px', borderRadius: '6px' }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>☁️</div>
+                <div style={{ color: colors.text, fontSize: '12px', fontWeight: '600' }}>Virtual Appliance</div>
+                <div style={{ color: colors.textMuted, fontSize: '11px' }}>VM in VMware, Hyper-V, cloud</div>
+              </div>
+              <div style={{ background: colors.bg, padding: '10px', borderRadius: '6px' }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>🔥</div>
+                <div style={{ color: colors.text, fontSize: '12px', fontWeight: '600' }}>Integrato in NGFW</div>
+                <div style={{ color: colors.textMuted, fontSize: '11px' }}>Modulo dentro firewall avanzati</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Dove si posizionano */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '20px', marginBottom: '20px' }}>
             <Glow color={colors.info}>
-              <h3 style={{ color: colors.info, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🔍</span> IDS - Intrusion Detection System
+              <h3 style={{ color: colors.info, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'clamp(14px, 1.3vw, 18px)' }}>
+                <span>🌐</span> NIDS/NIPS (Network-based)
               </h3>
-              <p style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '12px', fontSize: 'clamp(13px, 1.2vw, 16px)' }}>
-                <strong style={{ color: colors.text }}>Rileva</strong> attività sospette e genera alert.
-                Opera in modalità <strong style={{ color: colors.info }}>passiva</strong>: monitora ma non blocca.
+              <p style={{ color: colors.textDim, lineHeight: '1.5', fontSize: 'clamp(12px, 1.1vw, 15px)', marginBottom: '10px' }}>
+                Posizionato sulla <strong style={{ color: colors.text }}>rete</strong>, analizza tutto il traffico che passa.
               </p>
-              <div style={{ background: colors.bg, padding: '12px', borderRadius: '6px', marginTop: '12px' }}>
-                <div style={{ fontSize: '11px', color: colors.textMuted, marginBottom: '6px' }}>Funzionamento:</div>
-                <div style={{ fontSize: 'clamp(12px, 1.1vw, 14px)', color: colors.textDim }}>
-                  Traffico → Analisi → <span style={{ color: colors.warn }}>Alert</span> → Intervento manuale
-                </div>
+              <div style={{ background: colors.bg, padding: '10px', borderRadius: '6px', fontSize: '11px' }}>
+                <div style={{ color: colors.textMuted, marginBottom: '4px' }}>📍 Posizioni tipiche:</div>
+                <ul style={{ color: colors.textDim, paddingLeft: '16px', margin: 0, lineHeight: '1.6' }}>
+                  <li>Dietro il firewall perimetrale</li>
+                  <li>Tra segmenti di rete (DMZ↔LAN)</li>
+                  <li>Su porte SPAN/mirror dello switch</li>
+                </ul>
               </div>
-              <div style={{ color: colors.info, fontSize: '12px', marginTop: '10px' }}>📊 Utile per: logging, analisi forense, compliance</div>
             </Glow>
-            <Glow color={colors.success}>
-              <h3 style={{ color: colors.success, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🛡️</span> IPS - Intrusion Prevention System
+            <Glow color={colors.purple}>
+              <h3 style={{ color: colors.purple, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'clamp(14px, 1.3vw, 18px)' }}>
+                <span>💻</span> HIDS/HIPS (Host-based)
               </h3>
-              <p style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '12px', fontSize: 'clamp(13px, 1.2vw, 16px)' }}>
-                <strong style={{ color: colors.text }}>Blocca</strong> automaticamente le minacce rilevate.
-                Opera in modalità <strong style={{ color: colors.success }}>attiva</strong>: inline nel flusso di rete.
+              <p style={{ color: colors.textDim, lineHeight: '1.5', fontSize: 'clamp(12px, 1.1vw, 15px)', marginBottom: '10px' }}>
+                Installato sul <strong style={{ color: colors.text }}>singolo host</strong>, monitora attività locali.
               </p>
-              <div style={{ background: colors.bg, padding: '12px', borderRadius: '6px', marginTop: '12px' }}>
-                <div style={{ fontSize: '11px', color: colors.textMuted, marginBottom: '6px' }}>Funzionamento:</div>
-                <div style={{ fontSize: 'clamp(12px, 1.1vw, 14px)', color: colors.textDim }}>
-                  Traffico → Analisi → <span style={{ color: colors.danger }}>Blocco automatico</span>
-                </div>
+              <div style={{ background: colors.bg, padding: '10px', borderRadius: '6px', fontSize: '11px' }}>
+                <div style={{ color: colors.textMuted, marginBottom: '4px' }}>📍 Cosa monitora:</div>
+                <ul style={{ color: colors.textDim, paddingLeft: '16px', margin: 0, lineHeight: '1.6' }}>
+                  <li>File system e registry</li>
+                  <li>Processi e connessioni</li>
+                  <li>Log di sistema e applicazioni</li>
+                </ul>
               </div>
-              <div style={{ color: colors.success, fontSize: '12px', marginTop: '10px' }}>⚡ Utile per: protezione real-time, risposta automatica</div>
             </Glow>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px', marginTop: '24px' }}>
-            <Box type="info" title="Tecniche di rilevamento">
-              <strong>Signature-based:</strong> confronta con pattern noti (veloce, ma non rileva zero-day)<br/>
-              <strong>Anomaly-based:</strong> rileva comportamenti anomali (più falsi positivi, ma trova nuove minacce)
+
+          {/* IDS vs IPS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
+            <Box type="info" title="IDS (Detection) - Passivo">
+              Collegato in <strong>parallelo</strong> (port mirroring). Riceve copia del traffico, analizza e genera alert. Non può bloccare direttamente.
             </Box>
-            <Box type="tip" title="Esempi di tool">
-              <strong>Open source:</strong> Snort, Suricata, OSSEC, Zeek<br/>
-              <strong>Enterprise:</strong> Cisco Firepower, Palo Alto, Fortinet
+            <Box type="success" title="IPS (Prevention) - Attivo">
+              Collegato <strong>inline</strong> (in serie). Tutto il traffico passa attraverso di lui. Può bloccare in tempo reale.
+            </Box>
+            <Box type="tip" title="Esempi pratici">
+              <strong>Snort/Suricata:</strong> software open source (NIDS/NIPS)<br/>
+              <strong>OSSEC/Wazuh:</strong> HIDS open source<br/>
+              <strong>Cisco Firepower:</strong> NGFW con IPS integrato
             </Box>
           </div>
         </div>
