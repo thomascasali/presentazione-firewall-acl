@@ -621,7 +621,63 @@ iptables -A INPUT -s 10.0.0.5 -j DROP`}</Code>
         </div>
       ),
 
-      // Slide 6: Network Topology Simulator
+      // Slide 6: IDS/IPS
+      () => (
+        <div style={{ padding: '30px' }}>
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: 'clamp(24px, 3vw, 38px)' }}>
+            <span style={{ fontSize: 'clamp(24px, 3vw, 36px)' }}>👁️</span> IDS e IPS
+          </h2>
+          <p style={{ color: colors.textDim, fontSize: 'clamp(14px, 1.3vw, 18px)', marginBottom: '24px', lineHeight: '1.7' }}>
+            Sistemi complementari al firewall che analizzano il traffico per rilevare e prevenire intrusioni e attacchi.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: '24px' }}>
+            <Glow color={colors.info}>
+              <h3 style={{ color: colors.info, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔍</span> IDS - Intrusion Detection System
+              </h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '12px', fontSize: 'clamp(13px, 1.2vw, 16px)' }}>
+                <strong style={{ color: colors.text }}>Rileva</strong> attività sospette e genera alert.
+                Opera in modalità <strong style={{ color: colors.info }}>passiva</strong>: monitora ma non blocca.
+              </p>
+              <div style={{ background: colors.bg, padding: '12px', borderRadius: '6px', marginTop: '12px' }}>
+                <div style={{ fontSize: '11px', color: colors.textMuted, marginBottom: '6px' }}>Funzionamento:</div>
+                <div style={{ fontSize: 'clamp(12px, 1.1vw, 14px)', color: colors.textDim }}>
+                  Traffico → Analisi → <span style={{ color: colors.warn }}>Alert</span> → Intervento manuale
+                </div>
+              </div>
+              <div style={{ color: colors.info, fontSize: '12px', marginTop: '10px' }}>📊 Utile per: logging, analisi forense, compliance</div>
+            </Glow>
+            <Glow color={colors.success}>
+              <h3 style={{ color: colors.success, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🛡️</span> IPS - Intrusion Prevention System
+              </h3>
+              <p style={{ color: colors.textDim, lineHeight: '1.6', marginBottom: '12px', fontSize: 'clamp(13px, 1.2vw, 16px)' }}>
+                <strong style={{ color: colors.text }}>Blocca</strong> automaticamente le minacce rilevate.
+                Opera in modalità <strong style={{ color: colors.success }}>attiva</strong>: inline nel flusso di rete.
+              </p>
+              <div style={{ background: colors.bg, padding: '12px', borderRadius: '6px', marginTop: '12px' }}>
+                <div style={{ fontSize: '11px', color: colors.textMuted, marginBottom: '6px' }}>Funzionamento:</div>
+                <div style={{ fontSize: 'clamp(12px, 1.1vw, 14px)', color: colors.textDim }}>
+                  Traffico → Analisi → <span style={{ color: colors.danger }}>Blocco automatico</span>
+                </div>
+              </div>
+              <div style={{ color: colors.success, fontSize: '12px', marginTop: '10px' }}>⚡ Utile per: protezione real-time, risposta automatica</div>
+            </Glow>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px', marginTop: '24px' }}>
+            <Box type="info" title="Tecniche di rilevamento">
+              <strong>Signature-based:</strong> confronta con pattern noti (veloce, ma non rileva zero-day)<br/>
+              <strong>Anomaly-based:</strong> rileva comportamenti anomali (più falsi positivi, ma trova nuove minacce)
+            </Box>
+            <Box type="tip" title="Esempi di tool">
+              <strong>Open source:</strong> Snort, Suricata, OSSEC, Zeek<br/>
+              <strong>Enterprise:</strong> Cisco Firepower, Palo Alto, Fortinet
+            </Box>
+          </div>
+        </div>
+      ),
+
+      // Slide 7: Network Topology Simulator
       () => (
         <div style={{ padding: '30px' }}>
           <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -634,7 +690,7 @@ iptables -A INPUT -s 10.0.0.5 -j DROP`}</Code>
         </div>
       ),
 
-      // Slide 7: Defense in Depth Simulator
+      // Slide 8: Defense in Depth Simulator
       () => (
         <div style={{ padding: '30px' }}>
           <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
