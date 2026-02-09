@@ -220,24 +220,33 @@
         setBlocked(false);
         let pos = 30;
         const s = scenarios[scenario];
+        // Calculate correct LAN center position based on scenario
+        const lanTargetX = s.hasDMZ ? 380 : s.hasFirewall ? 230 : 150;
+        const fw1Pos = 117; // First firewall position
+        const fw2Pos = 287; // Second firewall position (DMZ)
+
         const interval = setInterval(() => {
-          pos += 8;
+          pos += 6;
           const stage = pos < 120 ? 0 : pos < 220 ? 1 : pos < 320 ? 2 : 3;
-          if (s.hasFirewall && malicious && pos > 110 && pos < 130) {
+
+          // Check first firewall (if exists)
+          if (s.hasFirewall && malicious && pos > 105 && pos < 130) {
             setBlocked(true);
-            setPacket(p => ({ ...p, x: 115, blocked: true }));
+            setPacket(p => ({ ...p, x: fw1Pos, blocked: true }));
             clearInterval(interval);
             return;
           }
-          if (s.hasDMZ && malicious && pos > 280 && pos < 300) {
+          // Check second firewall in DMZ scenario
+          if (s.hasDMZ && malicious && pos > 275 && pos < 300) {
             setBlocked(true);
-            setPacket(p => ({ ...p, x: 285, blocked: true }));
+            setPacket(p => ({ ...p, x: fw2Pos, blocked: true }));
             clearInterval(interval);
             return;
           }
-          if (pos > 400) {
+          // Packet arrives at LAN
+          if (pos >= lanTargetX) {
             clearInterval(interval);
-            setPacket(p => ({ ...p, x: 400, arrived: true }));
+            setPacket(p => ({ ...p, x: lanTargetX, arrived: true }));
             return;
           }
           setPacket(p => ({ ...p, x: pos, stage }));
@@ -280,10 +289,10 @@
     const DefenseInDepthVisualizer = () => {
       const [attack, setAttack] = useState(null);
       const [layers, setLayers] = useState([
-        { name: 'Perimeter FW', enabled: true, icon: '🔥', blocks: 0.6 },
-        { name: 'IDS/IPS', enabled: true, icon: '👁️', blocks: 0.5 },
-        { name: 'Host FW', enabled: true, icon: '🛡️', blocks: 0.7 },
-        { name: 'Antivirus', enabled: true, icon: '🦠', blocks: 0.8 },
+        { name: 'Perimeter FW', enabled: true, icon: '🔥', blocks: 0.6, desc: 'Firewall perimetrale: prima linea di difesa, filtra traffico in entrata' },
+        { name: 'IDS/IPS', enabled: true, icon: '👁️', blocks: 0.5, desc: 'Sistema di rilevamento/prevenzione intrusioni: analizza pattern sospetti' },
+        { name: 'Host FW', enabled: true, icon: '🛡️', blocks: 0.7, desc: 'Firewall locale: protezione a livello di singola macchina' },
+        { name: 'Antivirus', enabled: true, icon: '🦠', blocks: 0.8, desc: 'Antivirus/EDR: rileva malware e comportamenti anomali' },
       ]);
 
       const toggleLayer = (i) => {
@@ -293,7 +302,6 @@
 
       const launchAttack = () => {
         const results = [];
-        let stopped = false;
         let currentLayer = 0;
 
         const processLayer = () => {
@@ -310,7 +318,7 @@
           results.push({ layer: currentLayer, blocked: false });
           setAttack({ results: [...results], stopped: false, complete: false });
           currentLayer++;
-          setTimeout(processLayer, 600);
+          setTimeout(processLayer, 700);
         };
 
         setAttack({ results: [], stopped: false, complete: false });
@@ -318,45 +326,90 @@
       };
 
       const enabledCount = layers.filter(l => l.enabled).length;
+      // Calculate total protection probability
+      const totalProtection = layers.reduce((acc, l) => l.enabled ? acc * (1 - l.blocks) : acc, 1);
+      const protectionPercent = Math.round((1 - totalProtection) * 100);
 
       return (
         <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
-          <h3 style={{ color: colors.accent, marginBottom: '16px' }}>🏰 Defense in Depth Simulator</h3>
-          <p style={{ color: colors.textDim, fontSize: '13px', marginBottom: '16px' }}>Attiva/disattiva i livelli di sicurezza e lancia un attacco per vedere come reagisce la difesa.</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            <div style={{ padding: '12px', background: colors.danger + '20', borderRadius: '8px', textAlign: 'center', minWidth: '60px' }}>
-              <div style={{ fontSize: '24px' }}>💀</div>
-              <div style={{ fontSize: '10px', color: colors.danger }}>Attacker</div>
+          <h3 style={{ color: colors.accent, marginBottom: '12px' }}>🏰 Defense in Depth Simulator</h3>
+
+          {/* Explanation Box */}
+          <div style={{ background: colors.bgLight, borderRadius: '8px', padding: '14px', marginBottom: '16px', border: `1px solid ${colors.border}` }}>
+            <div style={{ color: colors.text, fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Come funziona:</div>
+            <ul style={{ color: colors.textDim, fontSize: '12px', lineHeight: '1.6', paddingLeft: '16px', margin: 0 }}>
+              <li><strong>Click sui livelli</strong> per attivarli/disattivarli</li>
+              <li>Ogni livello ha una <strong>probabilità di bloccare</strong> l'attacco (mostrata in %)</li>
+              <li>Più livelli attivi = <strong>maggiore probabilità</strong> di fermare l'attacco</li>
+              <li>L'attacco attraversa i livelli da sinistra a destra</li>
+            </ul>
+          </div>
+
+          {/* Layers description */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginBottom: '16px' }}>
+            {layers.map((layer, i) => (
+              <div key={i} onClick={() => toggleLayer(i)} style={{ background: layer.enabled ? colors.bg : colors.bgLight, padding: '10px', borderRadius: '6px', cursor: 'pointer', border: `1px solid ${layer.enabled ? colors.accent + '60' : colors.border}`, opacity: layer.enabled ? 1 : 0.6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '16px' }}>{layer.icon}</span>
+                  <span style={{ color: colors.text, fontSize: '12px', fontWeight: '600' }}>{layer.name}</span>
+                  <span style={{ marginLeft: 'auto', color: layer.enabled ? colors.success : colors.textMuted, fontSize: '11px', fontWeight: '600' }}>{Math.round(layer.blocks * 100)}%</span>
+                </div>
+                <div style={{ color: colors.textMuted, fontSize: '10px', lineHeight: '1.4' }}>{layer.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Attack visualization */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px', flexWrap: 'wrap', justifyContent: 'center', padding: '12px', background: colors.bg, borderRadius: '8px' }}>
+            <div style={{ padding: '10px', background: colors.danger + '20', borderRadius: '8px', textAlign: 'center', minWidth: '50px' }}>
+              <div style={{ fontSize: '20px' }}>💀</div>
+              <div style={{ fontSize: '9px', color: colors.danger }}>Attacco</div>
             </div>
-            <div style={{ color: colors.textMuted }}>→</div>
+            <div style={{ color: colors.textMuted, fontSize: '16px' }}>→</div>
             {layers.map((layer, i) => (
               <React.Fragment key={i}>
-                <button onClick={() => toggleLayer(i)} style={{ padding: '12px', background: layer.enabled ? colors.bgLight : colors.bg, border: `2px solid ${layer.enabled ? colors.accent : colors.border}`, borderRadius: '8px', textAlign: 'center', minWidth: '70px', cursor: 'pointer', opacity: layer.enabled ? 1 : 0.5, position: 'relative' }}>
-                  <div style={{ fontSize: '20px' }}>{layer.icon}</div>
-                  <div style={{ fontSize: '9px', color: layer.enabled ? colors.text : colors.textMuted }}>{layer.name}</div>
-                  {attack?.results?.find(r => r.layer === i)?.blocked && <div style={{ position: 'absolute', top: -5, right: -5, background: colors.success, borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>✓</div>}
-                  {attack?.results?.find(r => r.layer === i && !r.blocked) && <div style={{ position: 'absolute', top: -5, right: -5, background: colors.danger, borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>→</div>}
-                </button>
-                {i < layers.length - 1 && <div style={{ color: colors.textMuted }}>→</div>}
+                <div style={{ padding: '8px', background: layer.enabled ? colors.bgLight : 'transparent', border: `2px solid ${layer.enabled ? colors.accent : colors.border}`, borderRadius: '8px', textAlign: 'center', minWidth: '55px', opacity: layer.enabled ? 1 : 0.4, position: 'relative' }}>
+                  <div style={{ fontSize: '18px' }}>{layer.icon}</div>
+                  <div style={{ fontSize: '8px', color: layer.enabled ? colors.text : colors.textMuted }}>{layer.name}</div>
+                  {attack?.results?.find(r => r.layer === i)?.blocked && <div style={{ position: 'absolute', top: -6, right: -6, background: colors.success, borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#fff' }}>✓</div>}
+                  {attack?.results?.find(r => r.layer === i && !r.blocked) && <div style={{ position: 'absolute', top: -6, right: -6, background: colors.warn, borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>→</div>}
+                </div>
+                <div style={{ color: colors.textMuted, fontSize: '16px' }}>→</div>
               </React.Fragment>
             ))}
-            <div style={{ color: colors.textMuted }}>→</div>
-            <div style={{ padding: '12px', background: attack?.complete && !attack?.stopped ? colors.danger + '40' : colors.success + '20', borderRadius: '8px', textAlign: 'center', minWidth: '60px', border: `2px solid ${attack?.complete && !attack?.stopped ? colors.danger : colors.success}` }}>
-              <div style={{ fontSize: '24px' }}>🎯</div>
-              <div style={{ fontSize: '10px', color: attack?.complete && !attack?.stopped ? colors.danger : colors.success }}>Target</div>
+            <div style={{ padding: '10px', background: attack?.complete && !attack?.stopped ? colors.danger + '40' : colors.success + '20', borderRadius: '8px', textAlign: 'center', minWidth: '50px', border: `2px solid ${attack?.complete && !attack?.stopped ? colors.danger : colors.success}` }}>
+              <div style={{ fontSize: '20px' }}>🎯</div>
+              <div style={{ fontSize: '9px', color: attack?.complete && !attack?.stopped ? colors.danger : colors.success }}>Target</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+
+          {/* Controls and stats */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
             <button onClick={launchAttack} style={{ padding: '10px 24px', background: colors.danger, border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>🚀 Lancia Attacco</button>
-            <span style={{ color: colors.textDim, fontSize: '12px' }}>Livelli attivi: {enabledCount}/4</span>
-            <span style={{ color: colors.textMuted, fontSize: '11px' }}>| Click sui livelli per attivarli/disattivarli</span>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <span style={{ color: colors.textDim, fontSize: '12px' }}>Livelli attivi: <strong style={{ color: colors.accent }}>{enabledCount}/4</strong></span>
+              <span style={{ color: colors.textDim, fontSize: '12px' }}>Protezione totale: <strong style={{ color: protectionPercent > 80 ? colors.success : protectionPercent > 50 ? colors.warn : colors.danger }}>{protectionPercent}%</strong></span>
+            </div>
           </div>
+
+          {/* Result message */}
           {attack?.complete && (
-            <div style={{ marginTop: '16px', padding: '12px', background: attack.stopped ? colors.success + '20' : colors.danger + '20', borderRadius: '8px', border: `1px solid ${attack.stopped ? colors.success : colors.danger}` }}>
+            <div style={{ padding: '14px', background: attack.stopped ? colors.success + '20' : colors.danger + '20', borderRadius: '8px', border: `1px solid ${attack.stopped ? colors.success : colors.danger}` }}>
               {attack.stopped ? (
-                <div style={{ color: colors.success, fontWeight: '600' }}>🛡️ Attacco fermato da: {layers[attack.stoppedAt].icon} {layers[attack.stoppedAt].name}</div>
+                <div>
+                  <div style={{ color: colors.success, fontWeight: '600', marginBottom: '6px' }}>🛡️ Attacco BLOCCATO da: {layers[attack.stoppedAt].icon} {layers[attack.stoppedAt].name}</div>
+                  <div style={{ color: colors.textDim, fontSize: '12px' }}>{layers[attack.stoppedAt].desc}</div>
+                  {attack.stoppedAt > 0 && <div style={{ color: colors.warn, fontSize: '11px', marginTop: '6px' }}>⚠️ L'attacco ha superato {attack.stoppedAt} livell{attack.stoppedAt > 1 ? 'i' : 'o'} prima di essere fermato</div>}
+                </div>
               ) : (
-                <div style={{ color: colors.danger, fontWeight: '600' }}>💥 BREACH! L'attacco ha raggiunto il target! {enabledCount === 0 ? 'Nessuna difesa attiva!' : 'Serve più defense in depth!'}</div>
+                <div>
+                  <div style={{ color: colors.danger, fontWeight: '600', marginBottom: '6px' }}>💥 BREACH! L'attacco ha raggiunto il target!</div>
+                  <div style={{ color: colors.textDim, fontSize: '12px' }}>
+                    {enabledCount === 0 ? 'Nessuna difesa era attiva. Attiva almeno un livello di protezione!' :
+                     enabledCount < 3 ? 'Troppi pochi livelli attivi. La Defense in Depth richiede più layer!' :
+                     'Anche con tutti i livelli attivi, nessuna difesa è perfetta. Ritenta per vedere risultati diversi.'}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -378,17 +431,17 @@
       // Slide 2: Cos'è un Firewall
       () => (
         <div style={{ padding: '30px' }}>
-          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '28px' }}>🛡️</span> Cos'è un Firewall?
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: 'clamp(24px, 3vw, 38px)' }}>
+            <span style={{ fontSize: 'clamp(24px, 3vw, 36px)' }}>🛡️</span> Cos'è un Firewall?
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: 'clamp(20px, 3vw, 40px)' }}>
             <div>
               <Glow>
-                <p style={{ color: colors.textDim, lineHeight: '1.7', fontSize: '15px' }}>
+                <p style={{ color: colors.textDim, lineHeight: '1.8', fontSize: 'clamp(15px, 1.5vw, 20px)' }}>
                   Un <strong style={{ color: colors.accent }}>firewall</strong> è un sistema di sicurezza che monitora e controlla
                   il traffico di rete in ingresso e in uscita, basandosi su un insieme di regole predefinite.
                 </p>
-                <p style={{ color: colors.textDim, lineHeight: '1.7', fontSize: '15px', marginTop: '12px' }}>
+                <p style={{ color: colors.textDim, lineHeight: '1.8', fontSize: 'clamp(15px, 1.5vw, 20px)', marginTop: '16px' }}>
                   Funziona come un <strong style={{ color: colors.accent }}>filtro</strong> tra reti con diversi livelli di fiducia
                   (es. Internet vs LAN aziendale).
                 </p>
@@ -399,8 +452,8 @@
               </Box>
             </div>
             <div>
-              <h3 style={{ color: colors.text, marginBottom: '14px', fontSize: '16px' }}>📋 Funzioni Principali</h3>
-              <ul style={{ color: colors.textDim, lineHeight: '2', paddingLeft: '20px' }}>
+              <h3 style={{ color: colors.text, marginBottom: '18px', fontSize: 'clamp(16px, 1.8vw, 24px)' }}>📋 Funzioni Principali</h3>
+              <ul style={{ color: colors.textDim, lineHeight: '2.2', paddingLeft: '24px', fontSize: 'clamp(14px, 1.4vw, 20px)' }}>
                 <li><strong style={{ color: colors.text }}>Filtraggio traffico</strong> - basato su regole</li>
                 <li><strong style={{ color: colors.text }}>Blocco accessi</strong> - non autorizzati</li>
                 <li><strong style={{ color: colors.text }}>Logging</strong> - registrazione connessioni</li>
@@ -478,10 +531,10 @@
       // Slide 4: DMZ
       () => (
         <div style={{ padding: '30px' }}>
-          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '28px' }}>🏰</span> Architettura con DMZ
+          <h2 style={{ color: colors.accent, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: 'clamp(24px, 3vw, 38px)' }}>
+            <span style={{ fontSize: 'clamp(24px, 3vw, 36px)' }}>🏰</span> Architettura con DMZ
           </h2>
-          <svg viewBox="0 0 600 280" style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block', background: colors.bgCard, borderRadius: '12px', padding: '20px' }}>
+          <svg viewBox="0 0 600 280" style={{ width: '100%', maxWidth: '1200px', minHeight: '250px', margin: '0 auto', display: 'block', background: colors.bgCard, borderRadius: '12px', padding: '20px' }}>
             <ellipse cx="60" cy="140" rx="45" ry="35" fill={colors.danger + '30'} stroke={colors.danger} strokeWidth="2" />
             <text x="60" y="135" textAnchor="middle" fill={colors.danger} fontSize="10" fontWeight="bold">Internet</text>
             <text x="60" y="150" textAnchor="middle" fill={colors.textMuted} fontSize="8">Untrusted</text>
