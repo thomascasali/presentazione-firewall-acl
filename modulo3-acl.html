@@ -386,6 +386,228 @@
       );
     };
 
+    // DMZ Simulator Component
+    const DMZSimulator = () => {
+      const [source, setSource] = useState('internet');
+      const [dest, setDest] = useState('web');
+      const [port, setPort] = useState('80');
+      const [result, setResult] = useState(null);
+      const [animating, setAnimating] = useState(false);
+      const [packetPos, setPacketPos] = useState(null);
+
+      const zones = {
+        internet: { label: 'Internet', ip: '203.0.113.50', color: colors.danger, icon: '🌐', zone: 'internet' },
+        web: { label: 'Web Server', ip: '172.16.1.10', color: colors.info, icon: '🖥️', zone: 'dmz' },
+        ftp: { label: 'FTP Server', ip: '172.16.1.20', color: colors.warn, icon: '💾', zone: 'dmz' },
+        db: { label: 'DB Server', ip: '192.168.1.50', color: colors.purple, icon: '🗄️', zone: 'lan' },
+        pc: { label: 'PC Admin', ip: '192.168.1.100', color: colors.success, icon: '💻', zone: 'lan' },
+      };
+
+      const ports = [
+        { value: '80', label: 'HTTP (80)' },
+        { value: '443', label: 'HTTPS (443)' },
+        { value: '21', label: 'FTP (21)' },
+        { value: '3306', label: 'MySQL (3306)' },
+        { value: '22', label: 'SSH (22)' },
+        { value: '23', label: 'Telnet (23)' },
+        { value: '53', label: 'DNS (53)' },
+        { value: '3389', label: 'RDP (3389)' },
+      ];
+
+      const checkACL = () => {
+        const s = zones[source];
+        const d = zones[dest];
+        const p = parseInt(port);
+
+        if (source === dest) return { allowed: false, rule: 'Sorgente e destinazione sono uguali', acl: '-' };
+
+        // Internet → DMZ
+        if (s.zone === 'internet' && d.zone === 'dmz') {
+          if (dest === 'web' && (p === 80 || p === 443)) return { allowed: true, rule: `ACL 110: permit tcp any host ${d.ip} eq ${p}`, acl: 'ACL 110 (Gi0/0 in)' };
+          if (dest === 'ftp' && (p === 21 || p === 20)) return { allowed: true, rule: `ACL 110: permit tcp any host ${d.ip} eq ${p}`, acl: 'ACL 110 (Gi0/0 in)' };
+          return { allowed: false, rule: `ACL 110: deny ip any any`, acl: 'ACL 110 (Gi0/0 in)' };
+        }
+        // Internet → LAN
+        if (s.zone === 'internet' && d.zone === 'lan') {
+          return { allowed: false, rule: 'ACL 110: deny ip any any (Internet non raggiunge la LAN)', acl: 'ACL 110 (Gi0/0 in)' };
+        }
+        // DMZ → LAN
+        if (s.zone === 'dmz' && d.zone === 'lan') {
+          if (source === 'web' && dest === 'db' && p === 3306) return { allowed: true, rule: `ACL 120: permit tcp host ${s.ip} host ${d.ip} eq 3306`, acl: 'ACL 120 (Gi0/1 in)' };
+          return { allowed: false, rule: `ACL 120: deny ip any any (DMZ non accede alla LAN)`, acl: 'ACL 120 (Gi0/1 in)' };
+        }
+        // DMZ → Internet
+        if (s.zone === 'dmz' && d.zone === 'internet') {
+          return { allowed: false, rule: 'ACL 120: deny ip any any (server DMZ non navigano)', acl: 'ACL 120 (Gi0/1 in)' };
+        }
+        // LAN → DMZ
+        if (s.zone === 'lan' && d.zone === 'dmz') {
+          return { allowed: true, rule: `Permesso: LAN può amministrare i server DMZ`, acl: 'Nessuna restrizione' };
+        }
+        // LAN → Internet
+        if (s.zone === 'lan' && d.zone === 'internet') {
+          return { allowed: true, rule: 'Permesso: LAN può navigare su Internet', acl: 'Nessuna restrizione' };
+        }
+        return { allowed: false, rule: 'Traffico non consentito', acl: '-' };
+      };
+
+      const simulate = async () => {
+        setAnimating(true);
+        setResult(null);
+        setPacketPos('start');
+        await new Promise(r => setTimeout(r, 400));
+        setPacketPos('firewall');
+        await new Promise(r => setTimeout(r, 600));
+        const res = checkACL();
+        if (res.allowed) {
+          setPacketPos('end');
+          await new Promise(r => setTimeout(r, 400));
+        } else {
+          setPacketPos('blocked');
+          await new Promise(r => setTimeout(r, 400));
+        }
+        setResult(res);
+        setAnimating(false);
+      };
+
+      const srcZone = zones[source]?.zone;
+      const dstZone = zones[dest]?.zone;
+
+      return (
+        <div style={{ background: colors.bgCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.border}` }}>
+          <p style={{ color: colors.textDim, fontSize: 'clamp(12px, 1.1vw, 14px)', marginBottom: '16px', lineHeight: '1.6' }}>
+            Scegli <strong style={{ color: colors.text }}>sorgente</strong>, <strong style={{ color: colors.text }}>destinazione</strong> e <strong style={{ color: colors.text }}>porta</strong>, poi invia il pacchetto per vedere se le ACL lo permettono o lo bloccano.
+          </p>
+
+          {/* Controls */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '4px' }}>Sorgente</label>
+              <select value={source} onChange={e => { setSource(e.target.value); setResult(null); setPacketPos(null); }} style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '13px' }}>
+                {Object.entries(zones).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label} ({v.ip})</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '4px' }}>Destinazione</label>
+              <select value={dest} onChange={e => { setDest(e.target.value); setResult(null); setPacketPos(null); }} style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '13px' }}>
+                {Object.entries(zones).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label} ({v.ip})</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', color: colors.textDim, fontSize: '11px', marginBottom: '4px' }}>Porta</label>
+              <select value={port} onChange={e => { setPort(e.target.value); setResult(null); setPacketPos(null); }} style={{ width: '100%', padding: '10px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, fontSize: '13px' }}>
+                {ports.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={simulate} disabled={animating || source === dest} style={{ width: '100%', padding: '10px 16px', background: animating ? colors.bgLight : `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, border: 'none', borderRadius: '8px', color: animating ? colors.textMuted : '#000', cursor: animating || source === dest ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '13px' }}>
+                {animating ? '⏳ Analisi...' : '🚀 Invia Pacchetto'}
+              </button>
+            </div>
+          </div>
+
+          {/* Network Diagram */}
+          <div style={{ background: colors.bg, borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
+            <svg viewBox="0 0 600 130" style={{ width: '100%', display: 'block' }}>
+              {/* Internet Zone */}
+              <rect x="5" y="25" width="80" height="80" fill={colors.danger + '15'} stroke={source === 'internet' ? colors.danger : colors.border} strokeWidth={source === 'internet' ? 2 : 1} rx="8" />
+              <text x="45" y="55" textAnchor="middle" fill={colors.danger} fontSize="20">🌐</text>
+              <text x="45" y="75" textAnchor="middle" fill={colors.textMuted} fontSize="8">Internet</text>
+              <text x="45" y="95" textAnchor="middle" fill={colors.textMuted} fontSize="6">203.0.113.50</text>
+
+              {/* Firewall 1 */}
+              <line x1="85" y1="65" x2="115" y2="65" stroke={packetPos === 'firewall' && (srcZone === 'internet' || dstZone === 'internet') ? colors.warn : colors.textMuted} strokeWidth="2" />
+              <rect x="115" y="40" width="40" height="50" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="6" />
+              <text x="135" y="62" textAnchor="middle" fill={colors.accent} fontSize="16">🔥</text>
+              <text x="135" y="78" textAnchor="middle" fill={colors.accent} fontSize="6">Gi0/0</text>
+              {packetPos === 'blocked' && (srcZone === 'internet' || (srcZone === 'dmz' && dstZone === 'internet')) && <text x="135" y="38" textAnchor="middle" fill={colors.danger} fontSize="14">❌</text>}
+
+              {/* DMZ Zone */}
+              <line x1="155" y1="65" x2="175" y2="65" stroke={packetPos === 'firewall' && (srcZone === 'dmz' || dstZone === 'dmz') ? colors.warn : colors.textMuted} strokeWidth="2" />
+              <rect x="175" y="10" width="180" height="110" fill={colors.warn + '08'} stroke={colors.warn} rx="8" strokeDasharray="5,3" />
+              <text x="265" y="22" textAnchor="middle" fill={colors.warn} fontSize="8" fontWeight="bold">DMZ 172.16.1.0/24</text>
+              {/* Web Server */}
+              <rect x="190" y="35" width="70" height="60" fill={source === 'web' || dest === 'web' ? colors.info + '25' : 'transparent'} stroke={source === 'web' || dest === 'web' ? colors.info : 'transparent'} rx="6" />
+              <text x="225" y="60" textAnchor="middle" fill={colors.info} fontSize="18">🖥️</text>
+              <text x="225" y="77" textAnchor="middle" fill={colors.info} fontSize="7">Web Server</text>
+              <text x="225" y="90" textAnchor="middle" fill={colors.textMuted} fontSize="6">.10</text>
+              {/* FTP Server */}
+              <rect x="275" y="35" width="70" height="60" fill={source === 'ftp' || dest === 'ftp' ? colors.warn + '25' : 'transparent'} stroke={source === 'ftp' || dest === 'ftp' ? colors.warn : 'transparent'} rx="6" />
+              <text x="310" y="60" textAnchor="middle" fill={colors.warn} fontSize="18">💾</text>
+              <text x="310" y="77" textAnchor="middle" fill={colors.warn} fontSize="7">FTP Server</text>
+              <text x="310" y="90" textAnchor="middle" fill={colors.textMuted} fontSize="6">.20</text>
+
+              {/* Firewall 2 */}
+              <line x1="355" y1="65" x2="385" y2="65" stroke={packetPos === 'firewall' && (srcZone === 'dmz' && dstZone === 'lan' || srcZone === 'lan' && dstZone === 'dmz') ? colors.warn : colors.textMuted} strokeWidth="2" />
+              <rect x="385" y="40" width="40" height="50" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="6" />
+              <text x="405" y="62" textAnchor="middle" fill={colors.accent} fontSize="16">🔥</text>
+              <text x="405" y="78" textAnchor="middle" fill={colors.accent} fontSize="6">Gi0/1|2</text>
+              {packetPos === 'blocked' && ((srcZone === 'dmz' && dstZone === 'lan') || (srcZone === 'lan')) && <text x="405" y="38" textAnchor="middle" fill={colors.danger} fontSize="14">❌</text>}
+
+              {/* LAN Zone */}
+              <line x1="425" y1="65" x2="445" y2="65" stroke={packetPos === 'end' && dstZone === 'lan' ? colors.success : colors.textMuted} strokeWidth="2" />
+              <rect x="445" y="10" width="150" height="110" fill={colors.success + '08'} stroke={colors.success} rx="8" />
+              <text x="520" y="22" textAnchor="middle" fill={colors.success} fontSize="8" fontWeight="bold">LAN 192.168.1.0/24</text>
+              {/* DB Server */}
+              <rect x="455" y="35" width="60" height="60" fill={source === 'db' || dest === 'db' ? colors.purple + '25' : 'transparent'} stroke={source === 'db' || dest === 'db' ? colors.purple : 'transparent'} rx="6" />
+              <text x="485" y="60" textAnchor="middle" fill={colors.purple} fontSize="18">🗄️</text>
+              <text x="485" y="77" textAnchor="middle" fill={colors.purple} fontSize="7">DB Server</text>
+              <text x="485" y="90" textAnchor="middle" fill={colors.textMuted} fontSize="6">.50</text>
+              {/* PC */}
+              <rect x="525" y="35" width="60" height="60" fill={source === 'pc' || dest === 'pc' ? colors.success + '25' : 'transparent'} stroke={source === 'pc' || dest === 'pc' ? colors.success : 'transparent'} rx="6" />
+              <text x="555" y="60" textAnchor="middle" fill={colors.success} fontSize="18">💻</text>
+              <text x="555" y="77" textAnchor="middle" fill={colors.success} fontSize="7">PC Admin</text>
+              <text x="555" y="90" textAnchor="middle" fill={colors.textMuted} fontSize="6">.100</text>
+
+              {/* Packet animation indicator */}
+              {packetPos === 'end' && <text x={dstZone === 'dmz' ? 265 : dstZone === 'lan' ? 520 : 45} y="125" textAnchor="middle" fill={colors.success} fontSize="10" fontWeight="bold">✅ RICEVUTO</text>}
+            </svg>
+          </div>
+
+          {/* Result */}
+          {result && (
+            <div style={{ background: result.allowed ? colors.success + '15' : colors.danger + '15', border: `2px solid ${result.allowed ? colors.success : colors.danger}`, borderRadius: '10px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '24px' }}>{result.allowed ? '✅' : '🚫'}</span>
+                <span style={{ color: result.allowed ? colors.success : colors.danger, fontWeight: '700', fontSize: 'clamp(15px, 1.3vw, 18px)' }}>
+                  {result.allowed ? 'PACCHETTO PERMESSO' : 'PACCHETTO BLOCCATO'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gap: '6px' }}>
+                <div style={{ color: colors.textDim, fontSize: 'clamp(11px, 1vw, 13px)' }}>
+                  <strong style={{ color: colors.text }}>Percorso:</strong> {zones[source].icon} {zones[source].label} → {zones[dest].icon} {zones[dest].label} (porta {port})
+                </div>
+                <div style={{ color: colors.textDim, fontSize: 'clamp(11px, 1vw, 13px)' }}>
+                  <strong style={{ color: colors.text }}>ACL applicata:</strong> <code style={{ background: colors.bgLight, padding: '2px 6px', borderRadius: '3px', fontSize: '11px' }}>{result.acl}</code>
+                </div>
+                <div style={{ color: colors.textDim, fontSize: 'clamp(11px, 1vw, 13px)' }}>
+                  <strong style={{ color: colors.text }}>Regola:</strong> <code style={{ background: colors.bgLight, padding: '2px 6px', borderRadius: '3px', fontSize: '11px' }}>{result.rule}</code>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Quick test scenarios */}
+          {!result && !animating && (
+            <div style={{ marginTop: '12px' }}>
+              <div style={{ color: colors.textMuted, fontSize: '11px', marginBottom: '8px' }}>💡 Scenari da provare:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {[
+                  { s: 'internet', d: 'web', p: '80', label: '🌐→🖥️ HTTP' },
+                  { s: 'internet', d: 'db', p: '3306', label: '🌐→🗄️ MySQL' },
+                  { s: 'web', d: 'db', p: '3306', label: '🖥️→🗄️ MySQL' },
+                  { s: 'ftp', d: 'db', p: '3306', label: '💾→🗄️ MySQL' },
+                  { s: 'pc', d: 'web', p: '22', label: '💻→🖥️ SSH' },
+                ].map((sc, i) => (
+                  <button key={i} onClick={() => { setSource(sc.s); setDest(sc.d); setPort(sc.p); setResult(null); setPacketPos(null); }} style={{ padding: '6px 12px', background: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.textDim, cursor: 'pointer', fontSize: '11px' }}>{sc.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
     const slides = [
       // Slide 1: Title
       () => (<div style={{ textAlign: 'center', padding: '60px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}><div style={{ fontSize: '48px', marginBottom: '20px' }}>📋</div><div style={{ fontSize: '12px', color: colors.accent, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '16px' }}>Modulo 3</div><h1 style={{ fontSize: '42px', fontWeight: '700', background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentAlt})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '16px' }}>Access Control List</h1><p style={{ fontSize: '18px', color: colors.textDim, maxWidth: '500px', lineHeight: '1.6' }}>ACL Cisco: Standard, Extended, Wildcard Mask e simulatore interattivo</p></div>),
@@ -578,7 +800,184 @@ access-list 110 permit tcp 192.168.1.0 0.0.0.255 any eq 53
 interface GigabitEthernet0/1
   ip access-group 110 out`}</Code><Box type="warn" title="Attenzione!">Ricorda: senza "permit ip any any" alla fine, c'è sempre un implicit deny che blocca tutto ciò che non è esplicitamente permesso!</Box></div>),
 
-      // Slide 10: Named ACL
+      // Slide 10: Cos'è una DMZ?
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>🛡️ Cos'è una DMZ?</h2>
+        <p style={{ color: colors.textDim, lineHeight: '1.7', marginBottom: '20px', fontSize: 'clamp(13px, 1.2vw, 16px)' }}>
+          La <strong style={{ color: colors.warn }}>DMZ</strong> (Demilitarized Zone) è una <strong style={{ color: colors.text }}>zona di rete intermedia</strong> tra Internet e la rete interna. I server che devono essere raggiungibili dall'esterno (Web Server, FTP, Mail) vengono isolati qui, così anche se vengono compromessi, <strong style={{ color: colors.danger }}>l'attaccante non ha accesso diretto alla rete interna</strong>.
+        </p>
+
+        {/* Problema vs Soluzione */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ background: colors.danger + '15', border: `2px solid ${colors.danger}40`, borderRadius: '12px', padding: '16px' }}>
+            <h3 style={{ color: colors.danger, marginBottom: '10px', fontSize: 'clamp(14px, 1.2vw, 17px)' }}>❌ Senza DMZ</h3>
+            <p style={{ color: colors.textDim, fontSize: 'clamp(12px, 1.1vw, 14px)', lineHeight: '1.6' }}>Web Server e DB Server nella <strong style={{ color: colors.text }}>stessa rete</strong>. Se l'attaccante compromette il Web Server, ha accesso diretto al database con tutti i dati sensibili.</p>
+            <svg viewBox="0 0 300 80" style={{ width: '100%', maxWidth: '300px', margin: '12px auto 0', display: 'block' }}>
+              <rect x="10" y="10" width="60" height="60" fill={colors.danger + '30'} stroke={colors.danger} rx="6" />
+              <text x="40" y="35" textAnchor="middle" fill={colors.danger} fontSize="16">🌐</text>
+              <text x="40" y="55" textAnchor="middle" fill={colors.textMuted} fontSize="7">Internet</text>
+              <line x1="70" y1="40" x2="100" y2="40" stroke={colors.textMuted} strokeWidth="2" />
+              <rect x="100" y="20" width="40" height="40" fill={colors.bgLight} stroke={colors.accent} rx="4" />
+              <text x="120" y="45" textAnchor="middle" fill={colors.accent} fontSize="14">🔥</text>
+              <line x1="140" y1="40" x2="160" y2="40" stroke={colors.textMuted} strokeWidth="2" />
+              <rect x="160" y="5" width="130" height="70" fill={colors.danger + '10'} stroke={colors.danger} rx="6" strokeDasharray="4,4" />
+              <text x="225" y="18" textAnchor="middle" fill={colors.danger} fontSize="7">Stessa rete!</text>
+              <text x="190" y="45" textAnchor="middle" fill={colors.info} fontSize="14">🖥️</text>
+              <text x="190" y="60" textAnchor="middle" fill={colors.textMuted} fontSize="6">Web</text>
+              <text x="225" y="45" textAnchor="middle" fill={colors.warn} fontSize="14">💾</text>
+              <text x="225" y="60" textAnchor="middle" fill={colors.textMuted} fontSize="6">FTP</text>
+              <text x="260" y="45" textAnchor="middle" fill={colors.purple} fontSize="14">🗄️</text>
+              <text x="260" y="60" textAnchor="middle" fill={colors.textMuted} fontSize="6">DB</text>
+            </svg>
+          </div>
+          <div style={{ background: colors.success + '15', border: `2px solid ${colors.success}40`, borderRadius: '12px', padding: '16px' }}>
+            <h3 style={{ color: colors.success, marginBottom: '10px', fontSize: 'clamp(14px, 1.2vw, 17px)' }}>✅ Con DMZ</h3>
+            <p style={{ color: colors.textDim, fontSize: 'clamp(12px, 1.1vw, 14px)', lineHeight: '1.6' }}>I server esposti sono <strong style={{ color: colors.text }}>isolati in DMZ</strong>. Il DB Server resta nella rete interna, raggiungibile <strong style={{ color: colors.success }}>solo dal Web Server</strong> sulla porta necessaria.</p>
+            <svg viewBox="0 0 400 80" style={{ width: '100%', maxWidth: '400px', margin: '12px auto 0', display: 'block' }}>
+              <rect x="5" y="15" width="45" height="50" fill={colors.danger + '30'} stroke={colors.danger} rx="4" />
+              <text x="27" y="38" textAnchor="middle" fill={colors.danger} fontSize="14">🌐</text>
+              <text x="27" y="52" textAnchor="middle" fill={colors.textMuted} fontSize="6">Internet</text>
+              <line x1="50" y1="40" x2="70" y2="40" stroke={colors.textMuted} strokeWidth="1.5" />
+              <rect x="70" y="20" width="30" height="40" fill={colors.bgLight} stroke={colors.accent} rx="4" />
+              <text x="85" y="44" textAnchor="middle" fill={colors.accent} fontSize="12">🔥</text>
+              <line x1="100" y1="40" x2="115" y2="40" stroke={colors.textMuted} strokeWidth="1.5" />
+              <rect x="115" y="8" width="110" height="64" fill={colors.warn + '10'} stroke={colors.warn} rx="6" strokeDasharray="4,4" />
+              <text x="170" y="18" textAnchor="middle" fill={colors.warn} fontSize="7" fontWeight="bold">DMZ</text>
+              <text x="147" y="48" textAnchor="middle" fill={colors.info} fontSize="14">🖥️</text>
+              <text x="147" y="62" textAnchor="middle" fill={colors.textMuted} fontSize="6">Web</text>
+              <text x="192" y="48" textAnchor="middle" fill={colors.warn} fontSize="14">💾</text>
+              <text x="192" y="62" textAnchor="middle" fill={colors.textMuted} fontSize="6">FTP</text>
+              <line x1="225" y1="40" x2="245" y2="40" stroke={colors.textMuted} strokeWidth="1.5" />
+              <rect x="245" y="20" width="30" height="40" fill={colors.bgLight} stroke={colors.accent} rx="4" />
+              <text x="260" y="44" textAnchor="middle" fill={colors.accent} fontSize="12">🔥</text>
+              <line x1="275" y1="40" x2="295" y2="40" stroke={colors.textMuted} strokeWidth="1.5" />
+              <rect x="295" y="8" width="95" height="64" fill={colors.success + '10'} stroke={colors.success} rx="6" />
+              <text x="342" y="18" textAnchor="middle" fill={colors.success} fontSize="7" fontWeight="bold">LAN Interna</text>
+              <text x="322" y="48" textAnchor="middle" fill={colors.purple} fontSize="14">🗄️</text>
+              <text x="322" y="62" textAnchor="middle" fill={colors.textMuted} fontSize="6">DB</text>
+              <text x="362" y="48" textAnchor="middle" fill={colors.success} fontSize="14">💻</text>
+              <text x="362" y="62" textAnchor="middle" fill={colors.textMuted} fontSize="6">PC</text>
+            </svg>
+          </div>
+        </div>
+
+        {/* Regole di flusso tra le zone */}
+        <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}>
+          <h3 style={{ color: colors.cyan, marginBottom: '14px', fontSize: 'clamp(14px, 1.3vw, 18px)' }}>📐 Regole di flusso tra le 3 zone</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+            <div style={{ padding: '12px', background: colors.success + '10', borderRadius: '8px', borderLeft: `3px solid ${colors.success}` }}>
+              <div style={{ color: colors.success, fontWeight: '600', fontSize: 'clamp(11px, 1vw, 13px)', marginBottom: '4px' }}>Internet → DMZ</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(10px, 0.9vw, 12px)' }}>✅ Solo porte specifiche (80, 443, 21)</div>
+            </div>
+            <div style={{ padding: '12px', background: colors.danger + '10', borderRadius: '8px', borderLeft: `3px solid ${colors.danger}` }}>
+              <div style={{ color: colors.danger, fontWeight: '600', fontSize: 'clamp(11px, 1vw, 13px)', marginBottom: '4px' }}>Internet → LAN Interna</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(10px, 0.9vw, 12px)' }}>🚫 BLOCCATO sempre</div>
+            </div>
+            <div style={{ padding: '12px', background: colors.success + '10', borderRadius: '8px', borderLeft: `3px solid ${colors.success}` }}>
+              <div style={{ color: colors.success, fontWeight: '600', fontSize: 'clamp(11px, 1vw, 13px)', marginBottom: '4px' }}>DMZ → LAN Interna</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(10px, 0.9vw, 12px)' }}>✅ Solo Web Server → DB (porta 3306)</div>
+            </div>
+            <div style={{ padding: '12px', background: colors.danger + '10', borderRadius: '8px', borderLeft: `3px solid ${colors.danger}` }}>
+              <div style={{ color: colors.danger, fontWeight: '600', fontSize: 'clamp(11px, 1vw, 13px)', marginBottom: '4px' }}>DMZ → Internet</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(10px, 0.9vw, 12px)' }}>🚫 I server DMZ non navigano</div>
+            </div>
+            <div style={{ padding: '12px', background: colors.success + '10', borderRadius: '8px', borderLeft: `3px solid ${colors.success}` }}>
+              <div style={{ color: colors.success, fontWeight: '600', fontSize: 'clamp(11px, 1vw, 13px)', marginBottom: '4px' }}>LAN Interna → DMZ</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(10px, 0.9vw, 12px)' }}>✅ Amministrazione server</div>
+            </div>
+            <div style={{ padding: '12px', background: colors.success + '10', borderRadius: '8px', borderLeft: `3px solid ${colors.success}` }}>
+              <div style={{ color: colors.success, fontWeight: '600', fontSize: 'clamp(11px, 1vw, 13px)', marginBottom: '4px' }}>LAN Interna → Internet</div>
+              <div style={{ color: colors.textDim, fontSize: 'clamp(10px, 0.9vw, 12px)' }}>✅ Navigazione utenti</div>
+            </div>
+          </div>
+        </div>
+      </div>),
+
+      // Slide 11: ACL per la DMZ
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '20px' }}>⚙️ ACL per la DMZ - Configurazione Completa</h2>
+        <p style={{ color: colors.textDim, marginBottom: '16px', fontSize: 'clamp(12px, 1.1vw, 15px)', lineHeight: '1.6' }}>
+          Scenario: <strong style={{ color: colors.info }}>Web Server</strong> (172.16.1.10) e <strong style={{ color: colors.warn }}>FTP Server</strong> (172.16.1.20) in DMZ, <strong style={{ color: colors.purple }}>DB Server MySQL</strong> (192.168.1.50) in LAN interna. Il Web Server deve poter interrogare il DB.
+        </p>
+
+        {/* Schema rete con IP */}
+        <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+          <svg viewBox="0 0 600 100" style={{ width: '100%', maxWidth: '700px', margin: '0 auto', display: 'block' }}>
+            <rect x="5" y="25" width="60" height="50" fill={colors.danger + '30'} stroke={colors.danger} rx="6" />
+            <text x="35" y="48" textAnchor="middle" fill={colors.danger} fontSize="16">🌐</text>
+            <text x="35" y="64" textAnchor="middle" fill={colors.textMuted} fontSize="7">Internet</text>
+            <line x1="65" y1="50" x2="100" y2="50" stroke={colors.textMuted} strokeWidth="2" />
+            <rect x="100" y="25" width="50" height="50" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="6" />
+            <text x="125" y="48" textAnchor="middle" fill={colors.accent} fontSize="14">🔥</text>
+            <text x="125" y="64" textAnchor="middle" fill={colors.accent} fontSize="6">Gi0/0</text>
+            <text x="125" y="90" textAnchor="middle" fill={colors.textMuted} fontSize="6">Gi0/1 ↓</text>
+            <line x1="150" y1="50" x2="180" y2="50" stroke={colors.warn} strokeWidth="2" />
+            <rect x="180" y="10" width="170" height="80" fill={colors.warn + '08'} stroke={colors.warn} rx="8" strokeDasharray="5,3" />
+            <text x="265" y="22" textAnchor="middle" fill={colors.warn} fontSize="8" fontWeight="bold">DMZ - 172.16.1.0/24</text>
+            <text x="225" y="50" textAnchor="middle" fill={colors.info} fontSize="16">🖥️</text>
+            <text x="225" y="64" textAnchor="middle" fill={colors.info} fontSize="7">Web Server</text>
+            <text x="225" y="76" textAnchor="middle" fill={colors.textMuted} fontSize="6">172.16.1.10</text>
+            <text x="310" y="50" textAnchor="middle" fill={colors.warn} fontSize="16">💾</text>
+            <text x="310" y="64" textAnchor="middle" fill={colors.warn} fontSize="7">FTP Server</text>
+            <text x="310" y="76" textAnchor="middle" fill={colors.textMuted} fontSize="6">172.16.1.20</text>
+            <line x1="350" y1="50" x2="385" y2="50" stroke={colors.textMuted} strokeWidth="2" />
+            <rect x="385" y="25" width="50" height="50" fill={colors.bgLight} stroke={colors.accent} strokeWidth="2" rx="6" />
+            <text x="410" y="48" textAnchor="middle" fill={colors.accent} fontSize="14">🔥</text>
+            <text x="410" y="64" textAnchor="middle" fill={colors.accent} fontSize="6">Gi0/2</text>
+            <line x1="435" y1="50" x2="465" y2="50" stroke={colors.success} strokeWidth="2" />
+            <rect x="465" y="10" width="130" height="80" fill={colors.success + '08'} stroke={colors.success} rx="8" />
+            <text x="530" y="22" textAnchor="middle" fill={colors.success} fontSize="8" fontWeight="bold">LAN - 192.168.1.0/24</text>
+            <text x="500" y="50" textAnchor="middle" fill={colors.purple} fontSize="16">🗄️</text>
+            <text x="500" y="64" textAnchor="middle" fill={colors.purple} fontSize="7">DB Server</text>
+            <text x="500" y="76" textAnchor="middle" fill={colors.textMuted} fontSize="6">192.168.1.50</text>
+            <text x="560" y="50" textAnchor="middle" fill={colors.success} fontSize="16">💻</text>
+            <text x="560" y="64" textAnchor="middle" fill={colors.success} fontSize="7">PC Admin</text>
+            <text x="560" y="76" textAnchor="middle" fill={colors.textMuted} fontSize="6">192.168.1.100</text>
+          </svg>
+        </div>
+
+        {/* ACL Configuration */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+          <div>
+            <Code title="ACL su Gi0/0 (da Internet)">{`! Permetti HTTP verso Web Server
+access-list 110 permit tcp any
+  host 172.16.1.10 eq 80
+
+! Permetti HTTPS verso Web Server
+access-list 110 permit tcp any
+  host 172.16.1.10 eq 443
+
+! Permetti FTP verso FTP Server
+access-list 110 permit tcp any
+  host 172.16.1.20 eq 21
+access-list 110 permit tcp any
+  host 172.16.1.20 eq 20
+
+! Blocca tutto il resto verso la LAN
+access-list 110 deny ip any any
+
+interface Gi0/0
+  ip access-group 110 in`}</Code>
+          </div>
+          <div>
+            <Code title="ACL su Gi0/1 (da DMZ verso LAN)">{`! Web Server può raggiungere SOLO
+! il DB sulla porta MySQL
+access-list 120 permit tcp
+  host 172.16.1.10
+  host 192.168.1.50 eq 3306
+
+! Blocca TUTTO il resto dalla DMZ
+access-list 120 deny ip any any
+
+interface Gi0/1
+  ip access-group 120 in`}</Code>
+            <Box type="danger" title="Regola chiave">Il FTP Server NON può raggiungere la LAN interna. Solo il Web Server, e solo verso il DB, porta 3306. Se un attaccante compromette l'FTP, non può toccare il database!</Box>
+          </div>
+        </div>
+      </div>),
+
+      // Slide 12: Simulatore DMZ
+      () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '20px' }}>🧪 Simulatore DMZ Interattivo</h2><DMZSimulator /></div>),
+
+      // Slide 13: Named ACL
       () => (<div style={{ padding: '30px' }}><h2 style={{ color: colors.accent, marginBottom: '24px' }}>📛 Named ACL</h2><p style={{ color: colors.textDim, marginBottom: '16px' }}>Le Named ACL usano nomi invece di numeri, sono più leggibili e permettono di modificare singole righe.</p><Code title="Named ACL">{`! Crea Named Extended ACL
 ip access-list extended WEB-FILTER
   permit tcp 192.168.1.0 0.0.0.255 any eq 80

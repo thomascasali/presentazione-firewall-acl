@@ -12,18 +12,18 @@ Presentazione interattiva su Firewall e ACL per il corso di Sistemi e Reti.
 |--------|--------|-------|-----------|
 | 1 | Fondamenti Firewall | 8 | Definizione, posizionamento, DMZ, IDS/IPS, Defense in Depth, principi (Default Deny/Allow) |
 | 2 | Tipologie Firewall | 10 | Packet Filter, Stateful Inspection, Application Level Gateway, NGFW |
-| 3 | Access Control List | 16 | ACL Standard/Extended, Wildcard Mask, Named ACL, configurazione Cisco |
+| 3 | Access Control List | 19 | ACL Standard/Extended, Wildcard Mask, DMZ, Named ACL, configurazione Cisco |
 | 4 | Firewall Linux | 14 | iptables, nftables, UFW, NAT, Masquerading, tables/chains/rules |
 | 5 | Windows Firewall | 8 | Profili di rete, Windows Defender Firewall, PowerShell, netsh |
 | 6 | Quiz & Riepilogo | 5 | Quiz 15 domande, simulatori di scenario, riepilogo concetti |
 
-**Totale: 61 slide**
+**Totale: 64 slide**
 
 ---
 
 ## Simulatori Interattivi
 
-La presentazione include **12 simulatori** per l'apprendimento pratico:
+La presentazione include **13 simulatori** per l'apprendimento pratico:
 
 ### Modulo 1 - Fondamenti
 - **Network Topology Simulator**: Visualizza il flusso dei pacchetti in diverse architetture di rete (senza firewall, perimetrale, DMZ)
@@ -36,6 +36,7 @@ La presentazione include **12 simulatori** per l'apprendimento pratico:
 ### Modulo 3 - ACL
 - **ACL Builder**: Costruttore interattivo di Access Control List Cisco
 - **Wildcard Mask Calculator**: Calcola wildcard mask da subnet mask e viceversa
+- **DMZ Simulator**: Simula il flusso di pacchetti tra Internet, DMZ e LAN interna con verifica ACL in tempo reale
 
 ### Modulo 4 - Linux
 - **iptables Rule Builder**: Genera comandi iptables selezionando table, chain, protocol e target
@@ -53,8 +54,8 @@ La presentazione include **12 simulatori** per l'apprendimento pratico:
 
 ## Caratteristiche
 
-- **61 slide** interattive organizzate in 6 moduli
-- **12 simulatori** per apprendimento pratico
+- **64 slide** interattive organizzate in 6 moduli
+- **13 simulatori** per apprendimento pratico
 - **Quiz finale** con 15 domande e spiegazioni dettagliate
 - **Design moderno** con tema scuro e gradienti
 - **Navigazione intuitiva** da tastiera (frecce, spazio, M per menu, ESC per indice)
